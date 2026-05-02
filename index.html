@@ -193,7 +193,13 @@
   .section-row input[type=color]{width:32px;height:26px;padding:0;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--panel)}
   .section-row .blank-toggle{font-size:11px;color:var(--muted)}
   .preview-wrap{display:flex;justify-content:center;align-items:center;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;min-height:400px}
-  .preview-wrap svg{width:100%;height:auto;max-width:600px;max-height:70vh;background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+  .preview-wrap svg{width:100%;height:auto;max-width:600px;max-height:70vh;background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow);transform-origin:center center;cursor:grab;touch-action:none;user-select:none}
+  .preview-wrap svg:active{cursor:grabbing}
+  .preview-rotatable{display:flex;justify-content:center;align-items:center;width:100%}
+  .rotate-bar{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;padding:6px 10px;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm)}
+  .rotate-bar .rotate-label{font-weight:600;font-size:14px;color:var(--text)}
+  .rotate-bar input[type=range]{flex:1;min-width:160px}
+  .rotate-bar .rotate-reset-btn{flex-shrink:0}
   .print-bar{display:flex;justify-content:center;margin-top:14px}
   .hint{font-size:12px;color:var(--muted);margin-top:4px}
   .file-input{display:none}
@@ -326,12 +332,6 @@
             <option value="ms-mincho">MS明朝</option>
           </select>
         </div>
-
-        <label>文字サイズ倍率</label>
-        <div class="row">
-          <input type="range" id="ctl-fontscale" min="0.5" max="2.0" step="0.05" value="1.0" style="width:140px">
-          <span id="ctl-fontscale-val" class="hint">1.00x</span>
-        </div>
       </div>
     </div>
 
@@ -347,6 +347,12 @@
       <div class="row">
         <input type="range" id="ctl-size" min="40" max="150" step="1" value="100" style="width:180px">
         <span id="ctl-size-val" class="hint">100% (280mm)</span>
+      </div>
+
+      <label>文字サイズ倍率</label>
+      <div class="row">
+        <input type="range" id="ctl-fontscale" min="0.5" max="2.0" step="0.05" value="1.0" style="width:180px">
+        <span id="ctl-fontscale-val" class="hint">1.00x</span>
       </div>
 
       <label>テーマ色</label>
@@ -394,7 +400,13 @@
       <span class="hint" id="preview-info"></span>
     </div>
     <div class="preview-wrap">
-      <div id="preview"></div>
+      <div id="preview" class="preview-rotatable"></div>
+    </div>
+    <div class="rotate-bar">
+      <span class="rotate-label">回転</span>
+      <input type="range" id="ctl-rotate" min="-180" max="180" step="0.5" value="0">
+      <span id="ctl-rotate-val" class="hint">0.0°</span>
+      <button type="button" class="btn rotate-reset-btn" id="btn-rotate-reset">0°に戻す</button>
     </div>
     <div class="print-bar" style="gap:10px;flex-wrap:wrap">
       <button class="btn btn-print" id="btn-overlay-preview">2枚を重ねてプレビュー</button>
@@ -508,7 +520,9 @@ const defaultTab = (themeColor) => ({
   N: 30,                      // タブごと独立
   themeColor: themeColor,
   autoGradient: false,        // 既定はOFF（同色塗り）
-  sizeScale: 1.0,             // サイズ倍率（0.4〜1.0）
+  sizeScale: 1.0,             // サイズ倍率（0.4〜1.5）
+  fontSizeScale: 1.0,         // 文字サイズ倍率（0.5〜2.0）タブごと
+  rotation: 0,                // プレビュー回転角度（度）タブごと
   textColor: '#000000',
   strokeColor: '#000000',
   sections: makeBlankSections(30)
@@ -535,13 +549,15 @@ const state = loadState() || {
 };
 // 旧バージョン互換
 if(!state.fontFamily) state.fontFamily = 'yugothic';
-if(!state.fontSizeScale) state.fontSizeScale = 1.0;
 // 旧仕様（state.N で両タブ共通）→ タブごとに移行
 if(state.N != null){
   if(state.work && state.work.N == null) state.work.N = state.N;
   if(state.name && state.name.N == null) state.name.N = state.N;
   delete state.N;
 }
+// 旧仕様（state.fontSizeScale で両タブ共通）→ タブごとに移行
+const legacyFontScale = (typeof state.fontSizeScale === 'number') ? state.fontSizeScale : 1.0;
+if(state.fontSizeScale != null) delete state.fontSizeScale;
 for(const key of ['work','name']){
   if(state[key]){
     if(state[key].N == null){
@@ -550,6 +566,12 @@ for(const key of ['work','name']){
     if(typeof state[key].sizeScale !== 'number'){
       // 旧仕様：work=A3(280mm)/name=A4(190mm)固定だったので倍率1.0で復元
       state[key].sizeScale = 1.0;
+    }
+    if(typeof state[key].fontSizeScale !== 'number'){
+      state[key].fontSizeScale = legacyFontScale;
+    }
+    if(typeof state[key].rotation !== 'number'){
+      state[key].rotation = 0;
     }
   }
 }
@@ -845,7 +867,7 @@ function buildDiscSVG(t, sizeMM){
   const stroke = t.strokeColor || '#000';
   const strokeW = Math.max(0.3, sizeMM*0.0015);
   const fontFam = FONT_FAMILIES[state.fontFamily] || FONT_FAMILIES.yugothic;
-  const fontScale = state.fontSizeScale || 1.0;
+  const fontScale = (typeof t.fontSizeScale === 'number') ? t.fontSizeScale : 1.0;
 
   const parts = [];
   parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizeMM} ${sizeMM}" width="${sizeMM}mm" height="${sizeMM}mm" style="background:#fff">`);
@@ -955,13 +977,14 @@ function renderAll(){
 
   document.getElementById('ctl-N').value = t.N;
   document.getElementById('ctl-fontfamily').value = state.fontFamily;
-  document.getElementById('ctl-fontscale').value = state.fontSizeScale;
-  document.getElementById('ctl-fontscale-val').textContent = Number(state.fontSizeScale).toFixed(2)+'x';
+  document.getElementById('ctl-fontscale').value = t.fontSizeScale;
+  document.getElementById('ctl-fontscale-val').textContent = Number(t.fontSizeScale).toFixed(2)+'x';
   themePicker.setValue(t.themeColor);
   textColorPicker.setValue(t.textColor);
   strokeColorPicker.setValue(t.strokeColor);
   document.getElementById('ctl-gradient').checked = t.autoGradient;
   updateSizeDisplay();
+  updateRotationDisplay();
 
   const sizeMM = getSizeMM(state.activeTab, t);
   document.getElementById('preview-title').textContent =
@@ -973,6 +996,7 @@ function renderAll(){
   renderSectionList();
   updateBulkBlankCheckbox();
   document.getElementById('preview').innerHTML = buildDiscSVG(t, sizeMM);
+  applyRotationToPreview();
   saveState();
 }
 
@@ -984,6 +1008,23 @@ function updateSizeDisplay(){
   const pct = Math.round((t.sizeScale ?? 1) * 100);
   slider.value = pct;
   display.textContent = `${pct}% (${getSizeMM(state.activeTab, t)}mm)`;
+}
+
+function updateRotationDisplay(){
+  const t = tab();
+  const slider = document.getElementById('ctl-rotate');
+  const display = document.getElementById('ctl-rotate-val');
+  if(!slider || !display) return;
+  const r = (typeof t.rotation === 'number') ? t.rotation : 0;
+  slider.value = r;
+  display.textContent = r.toFixed(1) + '°';
+}
+
+function applyRotationToPreview(){
+  const t = tab();
+  const r = (typeof t.rotation === 'number') ? t.rotation : 0;
+  const svg = document.querySelector('#preview svg');
+  if(svg) svg.style.transform = `rotate(${r}deg)`;
 }
 
 function renderSectionList(){
@@ -1063,6 +1104,7 @@ function schedulePreview(){
     const t = tab();
     const sizeMM = getSizeMM(state.activeTab, t);
     document.getElementById('preview').innerHTML = buildDiscSVG(t, sizeMM);
+    applyRotationToPreview();
     document.getElementById('preview-title').textContent =
       (state.activeTab==='work' ? '外円盤プレビュー' : '内円盤プレビュー') + `（A3 / ${sizeMM}mm 径）`;
     const filledCount = t.sections.filter(s=>!s.blank && (s.label||'').trim()).length;
@@ -1096,8 +1138,9 @@ document.getElementById('ctl-fontfamily').addEventListener('change', e=>{
   schedulePreview();
 });
 document.getElementById('ctl-fontscale').addEventListener('input', e=>{
-  state.fontSizeScale = parseFloat(e.target.value);
-  document.getElementById('ctl-fontscale-val').textContent = state.fontSizeScale.toFixed(2)+'x';
+  const t = tab();
+  t.fontSizeScale = parseFloat(e.target.value);
+  document.getElementById('ctl-fontscale-val').textContent = t.fontSizeScale.toFixed(2)+'x';
   schedulePreview();
 });
 
@@ -1114,6 +1157,72 @@ document.getElementById('ctl-size').addEventListener('input', e=>{
     `${pct}% (${getSizeMM(state.activeTab, t)}mm)`;
   schedulePreview();
 });
+
+/* ----- プレビュー回転 ----- */
+document.getElementById('ctl-rotate').addEventListener('input', e=>{
+  const t = tab();
+  t.rotation = parseFloat(e.target.value) || 0;
+  document.getElementById('ctl-rotate-val').textContent = t.rotation.toFixed(1) + '°';
+  applyRotationToPreview();
+  saveState();
+});
+
+document.getElementById('btn-rotate-reset').addEventListener('click', ()=>{
+  const t = tab();
+  t.rotation = 0;
+  updateRotationDisplay();
+  applyRotationToPreview();
+  saveState();
+});
+
+/* プレビューSVG上でドラッグして回転 */
+(function(){
+  const previewEl = document.getElementById('preview');
+  let dragging = false;
+  let startAngle = 0;
+  let startRot = 0;
+
+  function getAngleDeg(clientX, clientY){
+    const svg = previewEl.querySelector('svg');
+    if(!svg) return 0;
+    const rect = svg.getBoundingClientRect();
+    const cx = rect.left + rect.width/2;
+    const cy = rect.top  + rect.height/2;
+    return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+  }
+
+  previewEl.addEventListener('pointerdown', e=>{
+    const svg = previewEl.querySelector('svg');
+    if(!svg || !svg.contains(e.target)) return;
+    dragging = true;
+    startAngle = getAngleDeg(e.clientX, e.clientY);
+    startRot = tab().rotation || 0;
+    svg.setPointerCapture(e.pointerId);
+    e.preventDefault();
+  });
+  previewEl.addEventListener('pointermove', e=>{
+    if(!dragging) return;
+    const cur = getAngleDeg(e.clientX, e.clientY);
+    let r = startRot + (cur - startAngle);
+    // -180〜180の範囲に正規化
+    r = ((r + 180) % 360 + 360) % 360 - 180;
+    const t = tab();
+    t.rotation = r;
+    document.getElementById('ctl-rotate').value = r.toFixed(1);
+    document.getElementById('ctl-rotate-val').textContent = r.toFixed(1) + '°';
+    applyRotationToPreview();
+  });
+  previewEl.addEventListener('pointerup', e=>{
+    if(!dragging) return;
+    dragging = false;
+    const svg = previewEl.querySelector('svg');
+    if(svg && svg.releasePointerCapture) {
+      try{ svg.releasePointerCapture(e.pointerId); }catch(_){}
+    }
+    saveState();
+  });
+  previewEl.addEventListener('pointercancel', ()=>{ dragging = false; });
+})();
 
 /* ----- 一括設定 ----- */
 function updateBulkBlankCheckbox(){
