@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A3）を生成して印刷できる学級経営アプリ。">
+<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A3）を生成して印刷できる円盤型当番表作成アプリ。">
 <meta name="author" content="鈴木優太">
 <meta name="robots" content="noindex,nofollow">
-<title>円盤生成アプリ</title>
+<title>円盤型当番表作成アプリ</title>
 <script src="xlsx.full.min.js"></script>
 <style>
   /* ===== 共通変数（既定＝シンプル） ===== */
@@ -193,7 +193,7 @@
   .section-row input[type=color]{width:32px;height:26px;padding:0;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--panel)}
   .section-row .blank-toggle{font-size:11px;color:var(--muted)}
   .preview-wrap{display:flex;justify-content:center;align-items:center;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;min-height:400px}
-  .preview-wrap svg{width:100%;height:auto;max-width:600px;max-height:70vh;background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow);transform-origin:center center;cursor:grab;touch-action:none;user-select:none}
+  .preview-wrap svg{width:100%;height:auto;max-width:600px;max-height:70vh;background:transparent;transform-origin:center center;cursor:grab;touch-action:none;user-select:none}
   .preview-wrap svg:active{cursor:grabbing}
   .preview-rotatable{display:flex;justify-content:center;align-items:center;width:100%}
   .rotate-bar{display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap;padding:6px 10px;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm)}
@@ -305,7 +305,7 @@
 </style>
 </head>
 <body>
-<h1>円盤生成アプリ</h1>
+<h1>円盤型当番表作成アプリ</h1>
 
 <div class="layout">
   <!-- 左：設定パネル -->
@@ -340,7 +340,6 @@
       <label>分割数 N</label>
       <div class="row">
         <input type="number" id="ctl-N" min="1" max="50" value="30">
-        <span class="hint">1〜50（外円盤と内円盤で個別）</span>
       </div>
 
       <label>サイズ倍率（A3用紙に印刷）</label>
@@ -870,7 +869,7 @@ function buildDiscSVG(t, sizeMM){
   const fontScale = (typeof t.fontSizeScale === 'number') ? t.fontSizeScale : 1.0;
 
   const parts = [];
-  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizeMM} ${sizeMM}" width="${sizeMM}mm" height="${sizeMM}mm" style="background:#fff">`);
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizeMM} ${sizeMM}" width="${sizeMM}mm" height="${sizeMM}mm">`);
 
   // セクター
   for(let i=0;i<N;i++){
