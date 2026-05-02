@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A4）を生成して印刷できる学級経営アプリ。">
+<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A3）を生成して印刷できる学級経営アプリ。">
 <meta name="author" content="鈴木優太">
 <meta name="robots" content="noindex,nofollow">
 <title>円盤生成アプリ</title>
@@ -306,7 +306,7 @@
   <div class="panel">
     <div class="tabs">
       <div class="tab active" data-tab="work">外円盤（A3）</div>
-      <div class="tab" data-tab="name">内円盤（A4）</div>
+      <div class="tab" data-tab="name">内円盤（A3）</div>
     </div>
 
     <!-- 共通設定（両タブで同期） -->
@@ -343,16 +343,21 @@
         <span class="hint">1〜50（外円盤と内円盤で個別）</span>
       </div>
 
+      <label>サイズ倍率（A3用紙に印刷）</label>
+      <div class="row">
+        <input type="range" id="ctl-size" min="40" max="150" step="1" value="100" style="width:180px">
+        <span id="ctl-size-val" class="hint">100% (280mm)</span>
+      </div>
+
       <label>テーマ色</label>
       <div class="row">
         <span id="ctl-theme-wrap"></span>
-        <label><input type="checkbox" id="ctl-gradient" checked> 自動グラデーション</label>
+        <label><input type="checkbox" id="ctl-gradient"> 自動グラデーション</label>
       </div>
 
       <label>文字色（共通）</label>
       <div class="row">
         <span id="ctl-textcolor-wrap"></span>
-        <span class="hint">セクションごとの個別色が優先</span>
       </div>
 
       <label>境界線色</label>
@@ -376,8 +381,8 @@
         <input type="checkbox" id="bulk-blank">
         <span>すべて空白</span>
       </label>
-      <button type="button" class="btn bulk-btn" id="bulk-clear-labels">ラベルをすべて消去</button>
-      <button type="button" class="btn bulk-btn" id="bulk-reset-colors">個別色をすべて既定に</button>
+      <button type="button" class="btn bulk-btn" id="bulk-clear-labels">全消去</button>
+      <button type="button" class="btn bulk-btn" id="bulk-reset-colors">全同色</button>
     </div>
     <div class="section-list" id="section-list"></div>
   </div>
@@ -496,14 +501,24 @@ const FONT_FAMILIES = {
 /* ============================================================
    状態モデル
    ============================================================ */
+// 各タブの「100%」基準サイズ。A3用紙(297×420mm)の短辺-余白から280mmが上限。
+const BASE_SIZE_MM = { work: 280, name: 190 };
+
 const defaultTab = (themeColor) => ({
   N: 30,                      // タブごと独立
   themeColor: themeColor,
-  autoGradient: true,
+  autoGradient: false,        // 既定はOFF（同色塗り）
+  sizeScale: 1.0,             // サイズ倍率（0.4〜1.0）
   textColor: '#000000',
   strokeColor: '#000000',
   sections: makeBlankSections(30)
 });
+
+function getSizeMM(tabKey, t){
+  const scale = (t && typeof t.sizeScale === 'number') ? t.sizeScale : 1.0;
+  // A3用紙の短辺-余白から280mmが上限。これを超える倍率はキャップ。
+  return Math.min(280, Math.round(BASE_SIZE_MM[tabKey] * scale));
+}
 
 function makeBlankSections(n){
   const arr = [];
@@ -528,8 +543,14 @@ if(state.N != null){
   delete state.N;
 }
 for(const key of ['work','name']){
-  if(state[key] && state[key].N == null){
-    state[key].N = (state[key].sections && state[key].sections.length) || 30;
+  if(state[key]){
+    if(state[key].N == null){
+      state[key].N = (state[key].sections && state[key].sections.length) || 30;
+    }
+    if(typeof state[key].sizeScale !== 'number'){
+      // 旧仕様：work=A3(280mm)/name=A4(190mm)固定だったので倍率1.0で復元
+      state[key].sizeScale = 1.0;
+    }
   }
 }
 
@@ -817,8 +838,7 @@ function parseCSV(text){
 /* ============================================================
    円盤SVG生成
    ============================================================ */
-function buildDiscSVG(t, paperKind){
-  const sizeMM = paperKind==='A3' ? 280 : 190;
+function buildDiscSVG(t, sizeMM){
   const cx = sizeMM/2, cy = sizeMM/2;
   const R = sizeMM/2 - 2;
   const N = t.N;
@@ -941,19 +961,29 @@ function renderAll(){
   textColorPicker.setValue(t.textColor);
   strokeColorPicker.setValue(t.strokeColor);
   document.getElementById('ctl-gradient').checked = t.autoGradient;
+  updateSizeDisplay();
 
-  const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
-  const sizeMM = paperKind==='A3' ? 280 : 190;
+  const sizeMM = getSizeMM(state.activeTab, t);
   document.getElementById('preview-title').textContent =
-    (state.activeTab==='work' ? '外円盤プレビュー' : '内円盤プレビュー') + `（${paperKind} / ${sizeMM}mm 径）`;
+    (state.activeTab==='work' ? '外円盤プレビュー' : '内円盤プレビュー') + `（A3 / ${sizeMM}mm 径）`;
 
   const filledCount = t.sections.filter(s=>!s.blank && (s.label||'').trim()).length;
   document.getElementById('preview-info').textContent = `${t.N}分割 / 入力済${filledCount}件`;
 
   renderSectionList();
   updateBulkBlankCheckbox();
-  document.getElementById('preview').innerHTML = buildDiscSVG(t, paperKind);
+  document.getElementById('preview').innerHTML = buildDiscSVG(t, sizeMM);
   saveState();
+}
+
+function updateSizeDisplay(){
+  const t = tab();
+  const slider = document.getElementById('ctl-size');
+  const display = document.getElementById('ctl-size-val');
+  if(!slider || !display) return;
+  const pct = Math.round((t.sizeScale ?? 1) * 100);
+  slider.value = pct;
+  display.textContent = `${pct}% (${getSizeMM(state.activeTab, t)}mm)`;
 }
 
 function renderSectionList(){
@@ -1031,8 +1061,10 @@ function schedulePreview(){
   if(previewTimer) cancelAnimationFrame(previewTimer);
   previewTimer = requestAnimationFrame(()=>{
     const t = tab();
-    const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
-    document.getElementById('preview').innerHTML = buildDiscSVG(t, paperKind);
+    const sizeMM = getSizeMM(state.activeTab, t);
+    document.getElementById('preview').innerHTML = buildDiscSVG(t, sizeMM);
+    document.getElementById('preview-title').textContent =
+      (state.activeTab==='work' ? '外円盤プレビュー' : '内円盤プレビュー') + `（A3 / ${sizeMM}mm 径）`;
     const filledCount = t.sections.filter(s=>!s.blank && (s.label||'').trim()).length;
     document.getElementById('preview-info').textContent = `${t.N}分割 / 入力済${filledCount}件`;
     updateBulkBlankCheckbox();
@@ -1071,6 +1103,15 @@ document.getElementById('ctl-fontscale').addEventListener('input', e=>{
 
 document.getElementById('ctl-gradient').addEventListener('change', e=>{
   tab().autoGradient = e.target.checked;
+  schedulePreview();
+});
+
+document.getElementById('ctl-size').addEventListener('input', e=>{
+  const t = tab();
+  const pct = parseInt(e.target.value, 10) || 100;
+  t.sizeScale = pct / 100;
+  document.getElementById('ctl-size-val').textContent =
+    `${pct}% (${getSizeMM(state.activeTab, t)}mm)`;
   schedulePreview();
 });
 
@@ -1419,15 +1460,16 @@ document.getElementById('json-input').addEventListener('change', async e=>{
 /* ----- 印刷 ----- */
 document.getElementById('btn-print').addEventListener('click', ()=>{
   const t = tab();
-  const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
+  const sizeMM = getSizeMM(state.activeTab, t);
   let styleEl = document.getElementById('dyn-page-style');
   if(!styleEl){
     styleEl = document.createElement('style');
     styleEl.id = 'dyn-page-style';
     document.head.appendChild(styleEl);
   }
-  styleEl.textContent = `@media print{ @page { size: ${paperKind} portrait; margin: 8mm; } }`;
-  document.getElementById('print-area').innerHTML = buildDiscSVG(t, paperKind);
+  // 内円盤・外円盤ともにA3用紙に印刷
+  styleEl.textContent = `@media print{ @page { size: A3 portrait; margin: 8mm; } }`;
+  document.getElementById('print-area').innerHTML = buildDiscSVG(t, sizeMM);
   setTimeout(()=>window.print(), 50);
 });
 
@@ -1436,7 +1478,7 @@ window.addEventListener('afterprint', ()=>{
 });
 
 /* ============================================================
-   重ねプレビュー（A3外円盤の上にA4内円盤を重ねて回転）
+   重ねプレビュー（外円盤の上に内円盤を重ねて回転。両方A3用紙に印刷）
    ============================================================ */
 const overlayDialog = document.getElementById('preview-dialog');
 const overlayStage  = document.getElementById('overlay-stage');
@@ -1468,8 +1510,17 @@ function getStageAngleDeg(clientX, clientY){
 
 function openOverlayPreview(){
   // 現在のstateから両円盤のSVGを生成して挿入
-  overlayOuter.innerHTML = buildDiscSVG(state.work, 'A3');
-  overlayInner.innerHTML = buildDiscSVG(state.name, 'A4');
+  const outerMM = getSizeMM('work', state.work);
+  const innerMM = getSizeMM('name', state.name);
+  overlayOuter.innerHTML = buildDiscSVG(state.work, outerMM);
+  overlayInner.innerHTML = buildDiscSVG(state.name, innerMM);
+  // 内円盤を実際の比率で表示（外円盤を100%として相対サイズ）
+  const ratio = Math.min(1, innerMM / Math.max(outerMM, 1));
+  const half = ratio * 100 / 2;
+  overlayInner.style.width  = (ratio * 100) + '%';
+  overlayInner.style.height = (ratio * 100) + '%';
+  overlayInner.style.marginTop  = '-' + half + '%';
+  overlayInner.style.marginLeft = '-' + half + '%';
   overlayRotation = 0;
   applyOverlayRotation();
   if(typeof overlayDialog.showModal === 'function'){
