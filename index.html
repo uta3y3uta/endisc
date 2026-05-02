@@ -1,0 +1,1530 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A4）を生成して印刷できる学級経営アプリ。">
+<meta name="author" content="鈴木優太">
+<meta name="robots" content="noindex,nofollow">
+<title>円盤生成アプリ</title>
+<script src="xlsx.full.min.js"></script>
+<style>
+  /* ===== 共通変数（既定＝シンプル） ===== */
+  :root{
+    --bg:#f5f5f5;
+    --panel:#ffffff;
+    --panel-soft:#fafafa;
+    --border:#d4d4d8;
+    --border-soft:#e5e7eb;
+    --text:#111827;
+    --muted:#6b7280;
+    --accent:#3b82f6;
+    --accent-hover:#2563eb;
+    --accent-fg:#ffffff;
+    --header-bg:#1f2937;
+    --header-fg:#ffffff;
+    --tab-bg:#f3f4f6;
+    --tab-fg:#1f2937;
+    --tab-active-bg:#1f2937;
+    --tab-active-fg:#ffffff;
+    --common-bg:#eff6ff;
+    --common-border:#bfdbfe;
+    --common-fg:#1e3a8a;
+    --shadow:0 1px 2px rgba(0,0,0,0.04);
+    --shadow-strong:0 6px 20px rgba(0,0,0,0.08);
+    --radius:8px;
+    --radius-sm:5px;
+    --ui-font:"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif;
+    --header-pad:14px 18px;
+    --header-size:18px;
+  }
+
+  /* ===== ナチュラル（ベージュ＆深緑） ===== */
+  body[data-ui-theme="natural"]{
+    --bg:#f7f1e3;
+    --panel:#fdfaf2;
+    --panel-soft:#f1ead8;
+    --border:#caa779;
+    --border-soft:#e0d4b6;
+    --text:#3d2817;
+    --muted:#7a6850;
+    --accent:#4a7c59;
+    --accent-hover:#36603f;
+    --accent-fg:#ffffff;
+    --header-bg:#3d2817;
+    --header-fg:#f7f1e3;
+    --tab-bg:#ede2c8;
+    --tab-fg:#3d2817;
+    --tab-active-bg:#4a7c59;
+    --tab-active-fg:#fdfaf2;
+    --common-bg:#efe7d2;
+    --common-border:#caa779;
+    --common-fg:#3d2817;
+    --radius:14px;
+    --radius-sm:8px;
+    --shadow:0 2px 4px rgba(60,40,20,0.08);
+    --shadow-strong:0 6px 18px rgba(60,40,20,0.12);
+    --ui-font:"Hiragino Mincho ProN","Yu Mincho",serif;
+  }
+
+  /* ===== ポップ（クリーム＆コーラル） ===== */
+  body[data-ui-theme="pop"]{
+    --bg:#fff8ee;
+    --panel:#ffffff;
+    --panel-soft:#fff1de;
+    --border:#fcc89e;
+    --border-soft:#ffe2c7;
+    --text:#5b2c0a;
+    --muted:#9a6b48;
+    --accent:#ff7a3d;
+    --accent-hover:#ed5a1c;
+    --accent-fg:#ffffff;
+    --header-bg:linear-gradient(90deg,#ff8a4c,#ffb347);
+    --header-fg:#ffffff;
+    --tab-bg:#ffeacf;
+    --tab-fg:#7a3a14;
+    --tab-active-bg:#ff7a3d;
+    --tab-active-fg:#ffffff;
+    --common-bg:#fff3e0;
+    --common-border:#fcc89e;
+    --common-fg:#a64a17;
+    --radius:18px;
+    --radius-sm:10px;
+    --shadow:0 2px 6px rgba(255,122,61,0.10);
+    --shadow-strong:0 8px 24px rgba(255,122,61,0.18);
+  }
+
+  /* ===== モダン（白黒＆ティール） ===== */
+  body[data-ui-theme="modern"]{
+    --bg:#fafafa;
+    --panel:#ffffff;
+    --panel-soft:#f4f4f5;
+    --border:#d4d4d8;
+    --border-soft:#e4e4e7;
+    --text:#0a0a0a;
+    --muted:#71717a;
+    --accent:#14b8a6;
+    --accent-hover:#0d9488;
+    --accent-fg:#ffffff;
+    --header-bg:#0a0a0a;
+    --header-fg:#fafafa;
+    --tab-bg:#f4f4f5;
+    --tab-fg:#0a0a0a;
+    --tab-active-bg:#0a0a0a;
+    --tab-active-fg:#5eead4;
+    --common-bg:#f0fdfa;
+    --common-border:#99f6e4;
+    --common-fg:#115e59;
+    --radius:6px;
+    --radius-sm:3px;
+    --shadow:0 1px 2px rgba(0,0,0,0.06);
+    --shadow-strong:0 10px 30px rgba(0,0,0,0.10);
+    --ui-font:"Inter","Yu Gothic","Hiragino Kaku Gothic ProN",sans-serif;
+  }
+
+  /* ===== わくわく（虹グラデーション） ===== */
+  body[data-ui-theme="wakuwaku"]{
+    --bg:#fef5f9;
+    --panel:#ffffff;
+    --panel-soft:#fef0f9;
+    --border:#fbcfe8;
+    --border-soft:#fce7f3;
+    --text:#831843;
+    --muted:#9d174d;
+    --accent:#ec4899;
+    --accent-hover:#db2777;
+    --accent-fg:#ffffff;
+    --header-bg:linear-gradient(90deg,#ec4899 0%,#a855f7 50%,#3b82f6 100%);
+    --header-fg:#ffffff;
+    --tab-bg:#fce7f3;
+    --tab-fg:#831843;
+    --tab-active-bg:#ec4899;
+    --tab-active-fg:#ffffff;
+    --common-bg:#faf5ff;
+    --common-border:#e9d5ff;
+    --common-fg:#6b21a8;
+    --radius:20px;
+    --radius-sm:12px;
+    --shadow:0 2px 8px rgba(236,72,153,0.10);
+    --shadow-strong:0 8px 28px rgba(236,72,153,0.20);
+    --ui-font:"HGMaruGothicMPRO","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif;
+  }
+
+  /* ===== 共通レイアウト ===== */
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0;font-family:var(--ui-font);background:var(--bg);color:var(--text);transition:background .25s ease}
+  h1{font-size:var(--header-size);margin:0;padding:var(--header-pad);background:var(--header-bg);color:var(--header-fg);letter-spacing:.04em;font-weight:700}
+  .layout{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:14px;align-items:start}
+  @media(max-width:1100px){.layout{grid-template-columns:1fr}}
+  .panel{background:var(--panel);border:1px solid var(--border-soft);border-radius:var(--radius);padding:14px;box-shadow:var(--shadow)}
+  .tabs{display:flex;gap:6px;margin-bottom:10px}
+  .tab{flex:1;padding:11px 10px;border:1px solid var(--border-soft);background:var(--tab-bg);color:var(--tab-fg);cursor:pointer;border-radius:var(--radius-sm) var(--radius-sm) 0 0;font-weight:600;text-align:center;transition:all .18s ease}
+  .tab:hover{filter:brightness(.97)}
+  .tab.active{background:var(--tab-active-bg);color:var(--tab-active-fg);border-color:var(--tab-active-bg);box-shadow:var(--shadow)}
+  .controls{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;align-items:center;margin-bottom:8px;font-size:13px}
+  .controls input[type=number]{width:80px;padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);background:var(--panel);color:var(--text)}
+  .controls input[type=color]{width:42px;height:30px;padding:0;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;vertical-align:middle;background:var(--panel)}
+  .controls select{padding:5px 8px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;background:var(--panel);color:var(--text);cursor:pointer}
+  .controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .common-section{background:var(--common-bg);border:1px solid var(--common-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px}
+  .common-section h3{margin:0 0 8px 0;font-size:13px;color:var(--common-fg);font-weight:700;letter-spacing:.04em}
+  .btn{padding:7px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s ease}
+  .btn:hover{background:var(--panel-soft);transform:translateY(-1px);box-shadow:var(--shadow)}
+  .btn:active{transform:translateY(0)}
+  .btn-primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+  .btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover)}
+  .btn-print{padding:14px 28px;font-size:16px;font-weight:700;border-radius:var(--radius);box-shadow:var(--shadow-strong)}
+  .actions{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}
+  .section-bulk{
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    padding:8px 12px;margin-bottom:6px;
+    background:var(--common-bg);border:1px solid var(--common-border);
+    border-radius:var(--radius-sm);font-size:12px
+  }
+  .section-bulk .bulk-label{font-weight:700;color:var(--common-fg);letter-spacing:.04em}
+  .section-bulk .bulk-item{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text)}
+  .section-bulk .bulk-item input{cursor:pointer}
+  .section-bulk .bulk-btn{padding:4px 10px;font-size:12px}
+  .section-list{max-height:50vh;overflow-y:auto;border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:6px;background:var(--panel-soft)}
+  .section-row{display:grid;grid-template-columns:32px 1fr 40px 40px 52px;gap:5px;align-items:center;padding:3px 0;font-size:13px}
+  .section-row .idx{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
+  .section-row input[type=text]{padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;background:var(--panel);color:var(--text);font-family:inherit}
+  .section-row input[type=text]:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 25%,transparent)}
+  .section-row input[type=color]{width:32px;height:26px;padding:0;border:1px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;background:var(--panel)}
+  .section-row .blank-toggle{font-size:11px;color:var(--muted)}
+  .preview-wrap{display:flex;justify-content:center;align-items:center;background:var(--panel-soft);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;min-height:400px}
+  .preview-wrap svg{width:100%;height:auto;max-width:600px;max-height:70vh;background:#fff;border-radius:var(--radius-sm);box-shadow:var(--shadow)}
+  .print-bar{display:flex;justify-content:center;margin-top:14px}
+  .hint{font-size:12px;color:var(--muted);margin-top:4px}
+  .file-input{display:none}
+
+  /* Google Sheetsダイアログ */
+  dialog#gsheet-dialog{border:1px solid var(--border);border-radius:var(--radius);padding:0;width:560px;max-width:90vw;max-height:90vh;background:var(--panel);color:var(--text);box-shadow:var(--shadow-strong)}
+  dialog#gsheet-dialog::backdrop{background:rgba(0,0,0,0.45);backdrop-filter:blur(2px)}
+  .dlg-body{padding:18px}
+  .dlg-body h3{margin:0 0 8px 0;font-size:16px;color:var(--text)}
+  .dlg-body h4{margin:14px 0 6px 0;font-size:13px;color:var(--muted);border-bottom:1px solid var(--border-soft);padding-bottom:4px}
+  .dlg-body textarea{width:100%;padding:7px;border:1px solid var(--border);border-radius:var(--radius-sm);font-family:inherit;font-size:13px;box-sizing:border-box;background:var(--panel);color:var(--text)}
+  .dlg-body .dlg-actions{display:flex;justify-content:flex-end;gap:6px;margin-top:8px}
+  .dlg-body p.hint{margin:4px 0}
+
+  /* ===== カラーピッカー ===== */
+  .cpicker{position:relative;display:inline-block;vertical-align:middle}
+  .cpicker-btn{
+    width:42px;height:30px;border:1px solid var(--border);border-radius:var(--radius-sm);
+    cursor:pointer;padding:0;position:relative;transition:border-color .15s ease;
+    background-color:#fff;background-size:cover;background-position:center
+  }
+  .cpicker-btn:hover{border-color:var(--accent)}
+  .cpicker-btn::after{
+    content:'';position:absolute;right:3px;bottom:3px;width:0;height:0;
+    border-left:5px solid transparent;border-right:5px solid transparent;
+    border-top:5px solid rgba(0,0,0,0.45);pointer-events:none
+  }
+  .cpicker-popover{
+    position:absolute;top:34px;left:0;background:var(--panel);
+    border:1px solid var(--border);border-radius:var(--radius);padding:10px;
+    z-index:1000;display:none;box-shadow:var(--shadow-strong);width:max-content
+  }
+  .cpicker.open .cpicker-popover{display:block}
+  .cpicker-label{font-size:11px;color:var(--muted);margin:0 0 4px 0;font-weight:700;letter-spacing:.04em}
+  .cpicker-grid{display:grid;grid-template-columns:repeat(10,22px);gap:4px;margin-bottom:6px}
+  .cpicker-swatch{
+    width:22px;height:22px;border:1px solid #999;border-radius:3px;cursor:pointer;
+    padding:0;transition:transform .12s ease;background-clip:padding-box
+  }
+  .cpicker-swatch:hover{transform:scale(1.18);box-shadow:0 0 0 2px rgba(0,0,0,0.18);position:relative;z-index:5}
+  .cpicker-swatch.current{outline:2px solid #111;outline-offset:1px}
+  .cpicker-divider{height:1px;background:var(--border-soft);margin:8px 0}
+  .cpicker-more{
+    width:100%;padding:7px 8px;border:1px solid var(--border);background:var(--panel-soft);
+    cursor:pointer;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;
+    color:var(--text);transition:all .15s ease
+  }
+  .cpicker-more:hover{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+  .cpicker-reset{
+    width:100%;padding:5px 8px;margin-top:4px;border:1px dashed var(--border);background:transparent;
+    cursor:pointer;border-radius:var(--radius-sm);font-size:11px;font-family:inherit;
+    color:var(--muted)
+  }
+  .cpicker-reset:hover{color:var(--text);border-style:solid}
+  .cpicker-btn.unset{
+    background:repeating-linear-gradient(45deg,#fff 0,#fff 4px,#ddd 4px,#ddd 8px)
+  }
+  /* セクション一覧用の小さいバージョン */
+  .section-row .cpicker-btn{width:32px;height:26px}
+
+  /* ===== 重ねプレビューダイアログ ===== */
+  dialog#preview-dialog{
+    border:1px solid var(--border);border-radius:var(--radius);padding:0;
+    width:600px;max-width:95vw;max-height:95vh;background:var(--panel);color:var(--text);
+    box-shadow:var(--shadow-strong)
+  }
+  dialog#preview-dialog::backdrop{background:rgba(0,0,0,0.5);backdrop-filter:blur(2px)}
+  .preview-dlg-body{padding:18px}
+  .preview-dlg-body h3{margin:0 0 10px 0;font-size:16px}
+  .overlay-stage-wrap{display:flex;justify-content:center;align-items:center;padding:6px;background:var(--panel-soft);border-radius:var(--radius-sm)}
+  .overlay-stage{position:relative;width:480px;height:480px;max-width:100%;aspect-ratio:1/1}
+  .overlay-stage .outer-disc,.overlay-stage .inner-disc{position:absolute;top:50%;left:50%;display:flex;align-items:center;justify-content:center}
+  .overlay-stage .outer-disc{width:100%;height:100%;margin-top:-50%;margin-left:-50%;pointer-events:none}
+  .overlay-stage .inner-disc{
+    width:67.86%;height:67.86%;margin-top:-33.93%;margin-left:-33.93%;
+    cursor:grab;transform:rotate(0deg);transform-origin:center center;
+    filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18));touch-action:none;user-select:none
+  }
+  .overlay-stage .inner-disc:active{cursor:grabbing}
+  .overlay-stage svg{width:100%;height:100%;display:block}
+  /* 内円盤は周囲の白い余白を消して，円の外は外円盤が透けて見えるようにする */
+  .overlay-stage .inner-disc svg{background:transparent !important}
+  .overlay-stage .inner-disc{background:transparent}
+  .overlay-stage .center-pin{
+    position:absolute;top:50%;left:50%;width:14px;height:14px;
+    margin-top:-7px;margin-left:-7px;
+    background:radial-gradient(circle at 30% 30%,#ff8a8a 0%,#c92a2a 70%,#7a1010 100%);
+    border-radius:50%;border:1px solid rgba(0,0,0,0.4);
+    pointer-events:none;z-index:10;box-shadow:0 1px 2px rgba(0,0,0,0.4)
+  }
+  .overlay-controls{display:flex;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+  .overlay-controls input[type=range]{flex:1;min-width:200px}
+
+  /* 印刷用 */
+  .print-area{display:none}
+  @media print{
+    @page{margin:8mm}
+    body>*:not(.print-area){display:none !important}
+    .print-area{display:flex !important;justify-content:center;align-items:center;width:100%;min-height:100vh;margin:0;padding:0;background:#fff !important}
+    .print-area svg{display:block;box-shadow:none}
+    .print-area svg *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
+  }
+</style>
+</head>
+<body>
+<h1>円盤生成アプリ</h1>
+
+<div class="layout">
+  <!-- 左：設定パネル -->
+  <div class="panel">
+    <div class="tabs">
+      <div class="tab active" data-tab="work">外円盤（A3）</div>
+      <div class="tab" data-tab="name">内円盤（A4）</div>
+    </div>
+
+    <!-- 共通設定（両タブで同期） -->
+    <div class="common-section">
+      <h3>共通設定（外円盤と内円盤で同期）</h3>
+      <div class="controls">
+        <label>フォント</label>
+        <div class="row">
+          <select id="ctl-fontfamily">
+            <option value="yugothic">游ゴシック</option>
+            <option value="yumincho">游明朝</option>
+            <option value="meiryo">メイリオ</option>
+            <option value="hgmaru">HG丸ゴシック</option>
+            <option value="udkyokasho">UDデジタル教科書体</option>
+            <option value="biz-ud">BIZ UDゴシック</option>
+            <option value="ms-gothic">MSゴシック</option>
+            <option value="ms-mincho">MS明朝</option>
+          </select>
+        </div>
+
+        <label>文字サイズ倍率</label>
+        <div class="row">
+          <input type="range" id="ctl-fontscale" min="0.5" max="2.0" step="0.05" value="1.0" style="width:140px">
+          <span id="ctl-fontscale-val" class="hint">1.00x</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- タブごとの設定 -->
+    <div class="controls">
+      <label>分割数 N</label>
+      <div class="row">
+        <input type="number" id="ctl-N" min="1" max="50" value="30">
+        <span class="hint">1〜50（外円盤と内円盤で個別）</span>
+      </div>
+
+      <label>テーマ色</label>
+      <div class="row">
+        <span id="ctl-theme-wrap"></span>
+        <label><input type="checkbox" id="ctl-gradient" checked> 自動グラデーション</label>
+      </div>
+
+      <label>文字色（共通）</label>
+      <div class="row">
+        <span id="ctl-textcolor-wrap"></span>
+        <span class="hint">セクションごとの個別色が優先</span>
+      </div>
+
+      <label>境界線色</label>
+      <div class="row">
+        <span id="ctl-strokecolor-wrap"></span>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn btn-primary" id="btn-import-data">データを取込</button>
+      <input type="file" id="file-input" class="file-input" accept=".xlsx,.xls,.xlsm,.csv">
+      <button class="btn" id="btn-clear">クリア</button>
+      <button class="btn" id="btn-export-json">設定を保存</button>
+      <button class="btn" id="btn-import-json">設定を読込</button>
+      <input type="file" id="json-input" class="file-input" accept=".json">
+    </div>
+
+    <div class="section-bulk">
+      <span class="bulk-label">一括設定</span>
+      <label class="bulk-item">
+        <input type="checkbox" id="bulk-blank">
+        <span>すべて空白</span>
+      </label>
+      <button type="button" class="btn bulk-btn" id="bulk-clear-labels">ラベルをすべて消去</button>
+      <button type="button" class="btn bulk-btn" id="bulk-reset-colors">個別色をすべて既定に</button>
+    </div>
+    <div class="section-list" id="section-list"></div>
+  </div>
+
+  <!-- 右：プレビュー -->
+  <div class="panel">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <strong id="preview-title">外円盤プレビュー（A3 / 280mm 径）</strong>
+      <span class="hint" id="preview-info"></span>
+    </div>
+    <div class="preview-wrap">
+      <div id="preview"></div>
+    </div>
+    <div class="print-bar" style="gap:10px;flex-wrap:wrap">
+      <button class="btn btn-print" id="btn-overlay-preview">2枚を重ねてプレビュー</button>
+      <button class="btn btn-primary btn-print" id="btn-print">この円盤を印刷</button>
+    </div>
+  </div>
+</div>
+
+<!-- データを取込：取込元の選択ダイアログ -->
+<dialog id="import-dialog">
+  <form method="dialog" class="dlg-body">
+    <h3>データを取込</h3>
+    <p class="hint">取込元を選んでください。A列（または1列目）のデータが取り込まれます。</p>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <button type="button" class="btn btn-primary" id="btn-import-excel">Excelから取込</button>
+      <button type="button" class="btn btn-primary" id="btn-import-gsheet">Googleスプレッドシートから取込</button>
+      <button type="button" class="btn btn-primary" id="btn-import-paste">その他のデータから取込（コピー＆貼り付け）</button>
+    </div>
+    <div class="dlg-actions" style="margin-top:14px;border-top:1px solid var(--border-soft);padding-top:10px">
+      <button type="submit" class="btn">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Google スプレッドシート 取込ダイアログ -->
+<dialog id="gsheet-dialog">
+  <form method="dialog" class="dlg-body">
+    <h3>Googleスプレッドシートから取込</h3>
+    <p class="hint">スプレッドシートを「リンクを知っている全員（閲覧）」に共有してから，URLを貼り付けてください。</p>
+    <textarea id="gsheet-url" rows="2" placeholder="https://docs.google.com/spreadsheets/d/..."></textarea>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-primary" id="btn-fetch-gsheet">URLから取込</button>
+    </div>
+
+    <div class="dlg-actions" style="margin-top:14px;border-top:1px solid var(--border-soft);padding-top:10px">
+      <button type="submit" class="btn">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- その他のデータから取込：コピー＆貼り付けダイアログ -->
+<dialog id="paste-dialog">
+  <form method="dialog" class="dlg-body">
+    <h3>その他のデータから取込（コピー＆貼り付け）</h3>
+    <p class="hint">改行区切り・CSV・TSV（Excelやスプレッドシートの列をそのままコピー）に対応します。1行＝1セクション。</p>
+    <textarea id="paste-textarea" rows="12" placeholder="（ここに貼り付け）&#10;1人目&#10;2人目&#10;3人目&#10;..."></textarea>
+    <div class="dlg-actions">
+      <button type="button" class="btn btn-primary" id="btn-do-paste-import">取込</button>
+      <button type="submit" class="btn">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 重ねプレビューダイアログ -->
+<dialog id="preview-dialog">
+  <form method="dialog" class="preview-dlg-body">
+    <h3>2枚を重ねてプレビュー</h3>
+    <p class="hint" style="margin:0 0 8px 0">外円盤の上に内円盤が重なっています。<strong>内円盤をマウスでドラッグ</strong>するか，下のスライダーで回転できます。</p>
+    <div class="overlay-stage-wrap">
+      <div class="overlay-stage" id="overlay-stage">
+        <div class="outer-disc" id="overlay-outer"></div>
+        <div class="inner-disc" id="overlay-inner"></div>
+        <div class="center-pin" title="ピン留めの位置（実物では画鋲で固定）"></div>
+      </div>
+    </div>
+    <div class="overlay-controls">
+      <label style="font-size:13px">回転</label>
+      <input type="range" id="overlay-rotate-slider" min="-180" max="180" step="0.1" value="0">
+      <span id="overlay-rotate-val" class="hint" style="min-width:50px;text-align:right">0.0°</span>
+    </div>
+    <div class="overlay-controls" style="margin-top:6px">
+      <button type="button" class="btn" id="btn-snap-prev">◀ 1セクション戻す</button>
+      <button type="button" class="btn" id="btn-snap-next">1セクション進める ▶</button>
+      <button type="button" class="btn" id="btn-rot-reset">リセット</button>
+    </div>
+    <p class="hint" style="margin-top:10px;font-size:11px">※ 実物では中央を画鋲でピン留めし，2枚を重ねて回転させて使います。</p>
+    <div class="dlg-actions" style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button type="submit" class="btn">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 印刷専用エリア（通常は非表示） -->
+<div class="print-area" id="print-area"></div>
+
+<script>
+'use strict';
+
+/* ============================================================
+   定数・フォント
+   ============================================================ */
+const STORAGE_KEY = 'tobanWheelStateV2';
+const FONT_FAMILIES = {
+  'yugothic':   '"Yu Gothic","Hiragino Kaku Gothic ProN",Meiryo,sans-serif',
+  'yumincho':   '"Yu Mincho","Hiragino Mincho ProN","MS Mincho",serif',
+  'meiryo':     'Meiryo,"Yu Gothic",sans-serif',
+  'hgmaru':     '"HGMaruGothicMPRO","Hiragino Maru Gothic ProN","Yu Gothic",sans-serif',
+  'udkyokasho': '"UD Digi Kyokasho N-R","UD Digi Kyokasho NK-R","BIZ UDGothic","Yu Gothic",sans-serif',
+  'biz-ud':     '"BIZ UDGothic","BIZ UDPGothic","Yu Gothic",sans-serif',
+  'ms-gothic':  '"MS Gothic","ＭＳ ゴシック",monospace',
+  'ms-mincho':  '"MS Mincho","ＭＳ 明朝",serif'
+};
+
+/* ============================================================
+   状態モデル
+   ============================================================ */
+const defaultTab = (themeColor) => ({
+  N: 30,                      // タブごと独立
+  themeColor: themeColor,
+  autoGradient: true,
+  textColor: '#000000',
+  strokeColor: '#000000',
+  sections: makeBlankSections(30)
+});
+
+function makeBlankSections(n){
+  const arr = [];
+  for(let i=0;i<n;i++) arr.push({label:'', fillColor:null, textColor:null, blank:true});
+  return arr;
+}
+
+const state = loadState() || {
+  activeTab:'work',
+  fontFamily: 'yugothic',     // 共通
+  fontSizeScale: 1.0,         // 共通
+  work: defaultTab('#FFB347'),
+  name: defaultTab('#A7D8FF')
+};
+// 旧バージョン互換
+if(!state.fontFamily) state.fontFamily = 'yugothic';
+if(!state.fontSizeScale) state.fontSizeScale = 1.0;
+// 旧仕様（state.N で両タブ共通）→ タブごとに移行
+if(state.N != null){
+  if(state.work && state.work.N == null) state.work.N = state.N;
+  if(state.name && state.name.N == null) state.name.N = state.N;
+  delete state.N;
+}
+for(const key of ['work','name']){
+  if(state[key] && state[key].N == null){
+    state[key].N = (state[key].sections && state[key].sections.length) || 30;
+  }
+}
+
+function loadState(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(!raw) return null;
+    const obj = JSON.parse(raw);
+    if(obj && obj.work && obj.name) return obj;
+  }catch(e){}
+  return null;
+}
+function saveState(){
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }catch(e){}
+}
+
+function tab(){ return state[state.activeTab]; }
+
+/* N変更（現在のタブだけ）：sectionsを同じ長さに合わせる */
+function setN(n){
+  n = Math.max(1, Math.min(50, n|0));
+  const t = tab();
+  t.N = n;
+  if(n > t.sections.length){
+    while(t.sections.length < n) t.sections.push({label:'',fillColor:null,textColor:null,blank:true});
+  }else{
+    t.sections.length = n;
+  }
+}
+
+/* 任意タブのN変更（取込・JSON読込時） */
+function setNFor(key, n){
+  n = Math.max(1, Math.min(50, n|0));
+  const t = state[key];
+  if(!t) return;
+  t.N = n;
+  if(n > t.sections.length){
+    while(t.sections.length < n) t.sections.push({label:'',fillColor:null,textColor:null,blank:true});
+  }else{
+    t.sections.length = n;
+  }
+}
+
+/* ============================================================
+   色ユーティリティ
+   ============================================================ */
+function hexToHsl(hex){
+  let h = hex.replace('#','');
+  if(h.length===3) h = h.split('').map(c=>c+c).join('');
+  const r = parseInt(h.slice(0,2),16)/255;
+  const g = parseInt(h.slice(2,4),16)/255;
+  const b = parseInt(h.slice(4,6),16)/255;
+  const max=Math.max(r,g,b), min=Math.min(r,g,b);
+  let H=0, S=0, L=(max+min)/2;
+  if(max!==min){
+    const d = max-min;
+    S = L>0.5 ? d/(2-max-min) : d/(max+min);
+    switch(max){
+      case r: H = (g-b)/d + (g<b?6:0); break;
+      case g: H = (b-r)/d + 2; break;
+      case b: H = (r-g)/d + 4; break;
+    }
+    H *= 60;
+  }
+  return {h:H, s:S*100, l:L*100};
+}
+function hslToHex(h,s,l){
+  s/=100; l/=100;
+  const k = n => (n + h/30) % 12;
+  const a = s * Math.min(l, 1-l);
+  const f = n => {
+    const c = l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n), 1)));
+    return Math.round(255*c).toString(16).padStart(2,'0');
+  };
+  return '#' + f(0) + f(8) + f(4);
+}
+function gradientColor(themeHex, i, n){
+  const {h,s} = hexToHsl(themeHex);
+  const lo = 50, hi = 85;
+  const l = n<=1 ? (lo+hi)/2 : lo + (hi-lo) * (i / (n-1));
+  const ss = i % 2 === 0 ? Math.min(100, s) : Math.max(0, s*0.7);
+  return hslToHex(h, ss, l);
+}
+
+/* ============================================================
+   カラーピッカー（Excelっぽいパレット＋その他の色）
+   ============================================================ */
+const COLOR_PALETTE = [
+  // モノクロ
+  '#000000','#222222','#444444','#666666','#888888','#AAAAAA','#CCCCCC','#E5E5E5','#F5F5F5','#FFFFFF',
+  // 赤系
+  '#7A0000','#B30000','#E03030','#FF6B6B','#FF8E8E','#FFB3B3','#FFCDD2','#FFE0E0','#FFEFEF','#FFF7F7',
+  // 橙系
+  '#7A3300','#B35400','#E07F00','#FFA040','#FFB347','#FFC988','#FFD9A8','#FFE4BD','#FFEED5','#FFF6E5',
+  // 黄系
+  '#7A6600','#B39900','#E0C200','#FFD93D','#FFE564','#FFEC8B','#FFF2A6','#FFF7C4','#FFFADC','#FFFCEE',
+  // 緑系
+  '#1F5A1F','#2E7D32','#43A047','#66BB6A','#81C784','#A5D6A7','#C5E1A5','#DCEDC8','#EEF5E0','#F5FAF0',
+  // 青緑系
+  '#004D40','#00796B','#00A693','#26C6BA','#5BD9CF','#81E0D8','#A7E5DD','#C8ECE8','#DDF1ED','#EEF7F5',
+  // 青系
+  '#0D3B7A','#1565C0','#1E88E5','#42A5F5','#64B5F6','#90CAF9','#A7D8FF','#C8E1FF','#DCEDFF','#EEF5FF',
+  // 紫系
+  '#3F1A7A','#5E35B1','#7E57C2','#9575CD','#A685D6','#C5A8E0','#D9C2EA','#E5D5F0','#EEDFF5','#F7EFFC',
+  // ピンク系
+  '#7A0040','#B0185D','#D63384','#EC4899','#F06292','#F48FB1','#F8BBD0','#FBCFE8','#FCE0EF','#FDEAF3',
+  // 茶/中間色
+  '#3D2817','#5D4037','#795548','#A1887F','#BCAAA4','#D7CCC8','#EFE6E0','#F5EFE9','#FAF6F2','#FDFBF8'
+];
+
+let activeCpicker = null;
+
+function makeColorPicker(opts){
+  // opts: {initial, onChange(v), onReset(), allowReset, label}
+  const wrap = document.createElement('span');
+  wrap.className = 'cpicker';
+
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'cpicker-btn';
+  btn.title = opts.title || '色を変更（右クリックで既定に戻す）';
+
+  const pop = document.createElement('div');
+  pop.className = 'cpicker-popover';
+
+  if(opts.label){
+    const l = document.createElement('div');
+    l.className = 'cpicker-label';
+    l.textContent = opts.label;
+    pop.appendChild(l);
+  }
+
+  const grid = document.createElement('div');
+  grid.className = 'cpicker-grid';
+  for(const c of COLOR_PALETTE){
+    const s = document.createElement('button');
+    s.type = 'button';
+    s.className = 'cpicker-swatch';
+    s.style.background = c;
+    s.title = c;
+    s.dataset.col = c.toLowerCase();
+    s.addEventListener('click', e=>{
+      e.stopPropagation();
+      setVal(c);
+      closePop();
+      if(opts.onChange) opts.onChange(c);
+    });
+    grid.appendChild(s);
+  }
+  pop.appendChild(grid);
+
+  // 「その他の色」用の隠しnative input
+  const native = document.createElement('input');
+  native.type = 'color';
+  native.value = opts.initial || '#000000';
+  native.style.position = 'absolute';
+  native.style.opacity = '0';
+  native.style.width = '0';
+  native.style.height = '0';
+  native.style.border = '0';
+  native.style.padding = '0';
+  native.style.pointerEvents = 'none';
+  native.tabIndex = -1;
+  native.addEventListener('input', ()=>{
+    setVal(native.value);
+    if(opts.onChange) opts.onChange(native.value);
+  });
+
+  pop.appendChild(document.createElement('div')).className = 'cpicker-divider';
+  const more = document.createElement('button');
+  more.type = 'button';
+  more.className = 'cpicker-more';
+  more.textContent = 'その他の色（RGB指定）...';
+  more.addEventListener('click', e=>{
+    e.stopPropagation();
+    native.click();
+  });
+  pop.appendChild(more);
+  pop.appendChild(native);
+
+  if(opts.allowReset){
+    const r = document.createElement('button');
+    r.type = 'button';
+    r.className = 'cpicker-reset';
+    r.textContent = '既定（テーマ色）に戻す';
+    r.addEventListener('click', e=>{
+      e.stopPropagation();
+      setVal(null);
+      closePop();
+      if(opts.onReset) opts.onReset();
+    });
+    pop.appendChild(r);
+  }
+
+  function setVal(v){
+    if(v == null || v === ''){
+      btn.classList.add('unset');
+      btn.style.backgroundColor = '';
+      btn.dataset.col = '';
+    }else{
+      btn.classList.remove('unset');
+      btn.style.backgroundColor = v;
+      btn.dataset.col = v.toLowerCase();
+      native.value = v;
+    }
+    // パレットのcurrent表示
+    pop.querySelectorAll('.cpicker-swatch').forEach(s=>{
+      s.classList.toggle('current', s.dataset.col === (btn.dataset.col || ''));
+    });
+  }
+  function closePop(){
+    wrap.classList.remove('open');
+    if(activeCpicker === wrap) activeCpicker = null;
+  }
+  function openPop(){
+    if(activeCpicker && activeCpicker !== wrap){
+      activeCpicker.classList.remove('open');
+    }
+    wrap.classList.add('open');
+    activeCpicker = wrap;
+  }
+
+  btn.addEventListener('click', e=>{
+    e.stopPropagation();
+    if(wrap.classList.contains('open')) closePop();
+    else openPop();
+  });
+  if(opts.allowReset){
+    btn.addEventListener('contextmenu', e=>{
+      e.preventDefault();
+      setVal(null);
+      if(opts.onReset) opts.onReset();
+    });
+  }
+
+  setVal(opts.initial == null ? null : opts.initial);
+  wrap.appendChild(btn);
+  wrap.appendChild(pop);
+
+  return {
+    element: wrap,
+    setValue: setVal,
+    getValue: ()=> btn.dataset.col || ''
+  };
+}
+
+// 外側クリック・ESCで閉じる
+document.addEventListener('click', ()=>{
+  if(activeCpicker){
+    activeCpicker.classList.remove('open');
+    activeCpicker = null;
+  }
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && activeCpicker){
+    activeCpicker.classList.remove('open');
+    activeCpicker = null;
+  }
+});
+
+/* ============================================================
+   CSV パース（Google Sheets用）
+   ============================================================ */
+function parseCSV(text){
+  const rows = [];
+  let cur = [], field = '', inQ = false;
+  for(let i=0;i<text.length;i++){
+    const c = text[i];
+    if(inQ){
+      if(c === '"' && text[i+1] === '"'){ field += '"'; i++; }
+      else if(c === '"') inQ = false;
+      else field += c;
+    }else{
+      if(c === '"') inQ = true;
+      else if(c === ','){ cur.push(field); field=''; }
+      else if(c === '\n'){ cur.push(field); rows.push(cur); cur=[]; field=''; }
+      else if(c === '\r'){ /* skip */ }
+      else field += c;
+    }
+  }
+  if(field.length>0 || cur.length>0){ cur.push(field); rows.push(cur); }
+  return rows;
+}
+
+/* ============================================================
+   円盤SVG生成
+   ============================================================ */
+function buildDiscSVG(t, paperKind){
+  const sizeMM = paperKind==='A3' ? 280 : 190;
+  const cx = sizeMM/2, cy = sizeMM/2;
+  const R = sizeMM/2 - 2;
+  const N = t.N;
+  const stroke = t.strokeColor || '#000';
+  const strokeW = Math.max(0.3, sizeMM*0.0015);
+  const fontFam = FONT_FAMILIES[state.fontFamily] || FONT_FAMILIES.yugothic;
+  const fontScale = state.fontSizeScale || 1.0;
+
+  const parts = [];
+  parts.push(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${sizeMM} ${sizeMM}" width="${sizeMM}mm" height="${sizeMM}mm" style="background:#fff">`);
+
+  // セクター
+  for(let i=0;i<N;i++){
+    const sec = t.sections[i] || {label:'', fillColor:null, textColor:null, blank:true};
+    const a1 = -Math.PI/2 + i * (2*Math.PI/N);
+    const a2 = -Math.PI/2 + (i+1) * (2*Math.PI/N);
+    const x1 = cx + R*Math.cos(a1);
+    const y1 = cy + R*Math.sin(a1);
+    const x2 = cx + R*Math.cos(a2);
+    const y2 = cy + R*Math.sin(a2);
+    const largeArc = (2*Math.PI/N) > Math.PI ? 1 : 0;
+
+    let fill = '#ffffff';
+    if(!sec.blank){
+      if(sec.fillColor){
+        fill = sec.fillColor;
+      }else if(t.autoGradient){
+        fill = gradientColor(t.themeColor, i, N);
+      }else{
+        fill = t.themeColor;
+      }
+    }
+
+    let d;
+    if(N === 1){
+      d = `M ${cx-R} ${cy} A ${R} ${R} 0 1 1 ${cx+R} ${cy} A ${R} ${R} 0 1 1 ${cx-R} ${cy} Z`;
+    }else{
+      d = `M ${cx} ${cy} L ${x1.toFixed(3)} ${y1.toFixed(3)} A ${R} ${R} 0 ${largeArc} 1 ${x2.toFixed(3)} ${y2.toFixed(3)} Z`;
+    }
+    parts.push(`<path d="${d}" fill="${fill}" stroke="${stroke}" stroke-width="${strokeW}" stroke-linejoin="round"/>`);
+  }
+
+  // ラベル（中央向き = 文字の頭が中心を向く配置）
+  for(let i=0;i<N;i++){
+    const sec = t.sections[i] || {label:'', blank:true};
+    const label = (sec.label||'').trim();
+    if(!label || sec.blank) continue;
+    const aMid = -Math.PI/2 + (i + 0.5) * (2*Math.PI/N);
+
+    // フォントサイズ：扇の弧長で制限
+    const charCount = Array.from(label).length;
+    const baseFs = Math.max(2.5, 11 - N * 0.12);
+    const tentativeR = R * 0.88;
+    const tentativeArc = 2 * Math.PI * tentativeR / N;
+    let fs = Math.min(baseFs, tentativeArc / Math.max(1,charCount) * 0.95);
+    fs = Math.max(2.2, fs) * fontScale;
+
+    // 配置半径：テキストの外側端が円盤の縁から marginMM だけ内側
+    const marginMM = 3;
+    const r = R - marginMM - fs/2;
+    const tx = cx + r * Math.cos(aMid);
+    const ty = cy + r * Math.sin(aMid);
+
+    // 外向き：文字の頭が外側（円周方向）を向く配置
+    // rotate(θ) の θ = aMid_deg + 90 で頭が外側方向
+    const rotDeg = aMid * 180 / Math.PI + 90;
+
+    const textColor = sec.textColor || t.textColor || '#000';
+
+    parts.push(
+      `<text x="0" y="0" transform="translate(${tx.toFixed(3)},${ty.toFixed(3)}) rotate(${rotDeg.toFixed(2)})"`+
+      ` text-anchor="middle" dominant-baseline="middle"`+
+      ` fill="${textColor}" font-family='${fontFam}'`+
+      ` font-size="${fs.toFixed(2)}" font-weight="600">${escapeXml(label)}</text>`
+    );
+  }
+
+  parts.push('</svg>');
+  return parts.join('');
+}
+
+function escapeXml(s){
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&apos;'
+  }[c]));
+}
+
+/* ============================================================
+   レンダリング
+   ============================================================ */
+/* タブ単位の3色ピッカー（テーマ色・文字色・境界線色）。再生成しない方針で，setValueで値を切り替える */
+const themePicker = makeColorPicker({
+  initial: '#FFB347',
+  onChange: v=>{ tab().themeColor = v; renderAll(); }
+});
+const textColorPicker = makeColorPicker({
+  initial: '#000000',
+  onChange: v=>{ tab().textColor = v; schedulePreview(); }
+});
+const strokeColorPicker = makeColorPicker({
+  initial: '#000000',
+  onChange: v=>{ tab().strokeColor = v; schedulePreview(); }
+});
+document.getElementById('ctl-theme-wrap').appendChild(themePicker.element);
+document.getElementById('ctl-textcolor-wrap').appendChild(textColorPicker.element);
+document.getElementById('ctl-strokecolor-wrap').appendChild(strokeColorPicker.element);
+
+function renderAll(){
+  document.querySelectorAll('.tab').forEach(el=>{
+    el.classList.toggle('active', el.dataset.tab === state.activeTab);
+  });
+
+  const t = tab();
+
+  document.getElementById('ctl-N').value = t.N;
+  document.getElementById('ctl-fontfamily').value = state.fontFamily;
+  document.getElementById('ctl-fontscale').value = state.fontSizeScale;
+  document.getElementById('ctl-fontscale-val').textContent = Number(state.fontSizeScale).toFixed(2)+'x';
+  themePicker.setValue(t.themeColor);
+  textColorPicker.setValue(t.textColor);
+  strokeColorPicker.setValue(t.strokeColor);
+  document.getElementById('ctl-gradient').checked = t.autoGradient;
+
+  const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
+  const sizeMM = paperKind==='A3' ? 280 : 190;
+  document.getElementById('preview-title').textContent =
+    (state.activeTab==='work' ? '外円盤プレビュー' : '内円盤プレビュー') + `（${paperKind} / ${sizeMM}mm 径）`;
+
+  const filledCount = t.sections.filter(s=>!s.blank && (s.label||'').trim()).length;
+  document.getElementById('preview-info').textContent = `${t.N}分割 / 入力済${filledCount}件`;
+
+  renderSectionList();
+  updateBulkBlankCheckbox();
+  document.getElementById('preview').innerHTML = buildDiscSVG(t, paperKind);
+  saveState();
+}
+
+function renderSectionList(){
+  const t = tab();
+  const list = document.getElementById('section-list');
+  list.innerHTML = '';
+  for(let i=0;i<t.N;i++){
+    if(!t.sections[i]) t.sections[i] = {label:'', fillColor:null, textColor:null, blank:true};
+    const sec = t.sections[i];
+    const row = document.createElement('div');
+    row.className = 'section-row';
+
+    const idx = document.createElement('div');
+    idx.className = 'idx';
+    idx.textContent = (i+1) + '';
+    row.appendChild(idx);
+
+    const labelInput = document.createElement('input');
+    labelInput.type = 'text';
+    labelInput.value = sec.label || '';
+    labelInput.placeholder = '（空白）';
+    labelInput.addEventListener('input', e=>{
+      sec.label = e.target.value;
+      sec.blank = !e.target.value.trim();
+      const cb = row.querySelector('.blank-cb');
+      if(cb) cb.checked = sec.blank;
+      schedulePreview();
+    });
+    row.appendChild(labelInput);
+
+    const fillInitial = sec.fillColor || (t.autoGradient ? gradientColor(t.themeColor, i, t.N) : t.themeColor);
+    const fillPicker = makeColorPicker({
+      initial: fillInitial,
+      title: '塗り色（右クリックでテーマ色に戻す）',
+      label: '塗り色',
+      allowReset: true,
+      onChange: v=>{ sec.fillColor = v; schedulePreview(); },
+      onReset:  ()=>{ sec.fillColor = null; renderAll(); }
+    });
+    if(!sec.fillColor) fillPicker.setValue(fillInitial); // 表示はテーマ色相当
+    row.appendChild(fillPicker.element);
+
+    const textInitial = sec.textColor || t.textColor;
+    const textPicker = makeColorPicker({
+      initial: textInitial,
+      title: '文字色（右クリックで共通色に戻す）',
+      label: '文字色',
+      allowReset: true,
+      onChange: v=>{ sec.textColor = v; schedulePreview(); },
+      onReset:  ()=>{ sec.textColor = null; renderAll(); }
+    });
+    if(!sec.textColor) textPicker.setValue(textInitial);
+    row.appendChild(textPicker.element);
+
+    const blankWrap = document.createElement('label');
+    blankWrap.className = 'blank-toggle';
+    const blankCb = document.createElement('input');
+    blankCb.type = 'checkbox';
+    blankCb.className = 'blank-cb';
+    blankCb.checked = !!sec.blank;
+    blankCb.addEventListener('change', e=>{
+      sec.blank = e.target.checked;
+      schedulePreview();
+    });
+    blankWrap.appendChild(blankCb);
+    blankWrap.appendChild(document.createTextNode('空白'));
+    row.appendChild(blankWrap);
+
+    list.appendChild(row);
+  }
+}
+
+let previewTimer = null;
+function schedulePreview(){
+  if(previewTimer) cancelAnimationFrame(previewTimer);
+  previewTimer = requestAnimationFrame(()=>{
+    const t = tab();
+    const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
+    document.getElementById('preview').innerHTML = buildDiscSVG(t, paperKind);
+    const filledCount = t.sections.filter(s=>!s.blank && (s.label||'').trim()).length;
+    document.getElementById('preview-info').textContent = `${t.N}分割 / 入力済${filledCount}件`;
+    updateBulkBlankCheckbox();
+    saveState();
+  });
+}
+
+/* ============================================================
+   イベント
+   ============================================================ */
+document.querySelectorAll('.tab').forEach(el=>{
+  el.addEventListener('click', ()=>{
+    state.activeTab = el.dataset.tab;
+    renderAll();
+  });
+});
+
+document.getElementById('ctl-N').addEventListener('change', e=>{
+  let n = parseInt(e.target.value, 10);
+  if(isNaN(n) || n<1) n = 1;
+  if(n>50) n = 50;
+  e.target.value = n;
+  setN(n);
+  renderAll();
+});
+
+document.getElementById('ctl-fontfamily').addEventListener('change', e=>{
+  state.fontFamily = e.target.value;
+  schedulePreview();
+});
+document.getElementById('ctl-fontscale').addEventListener('input', e=>{
+  state.fontSizeScale = parseFloat(e.target.value);
+  document.getElementById('ctl-fontscale-val').textContent = state.fontSizeScale.toFixed(2)+'x';
+  schedulePreview();
+});
+
+document.getElementById('ctl-gradient').addEventListener('change', e=>{
+  tab().autoGradient = e.target.checked;
+  schedulePreview();
+});
+
+/* ----- 一括設定 ----- */
+function updateBulkBlankCheckbox(){
+  const cb = document.getElementById('bulk-blank');
+  if(!cb) return;
+  const t = tab();
+  let blanks = 0;
+  for(let i=0;i<t.N;i++){
+    if(t.sections[i] && t.sections[i].blank) blanks++;
+  }
+  if(blanks === 0){ cb.checked = false; cb.indeterminate = false; }
+  else if(blanks === t.N){ cb.checked = true; cb.indeterminate = false; }
+  else { cb.checked = false; cb.indeterminate = true; }
+}
+
+document.getElementById('bulk-blank').addEventListener('change', e=>{
+  const t = tab();
+  const target = e.target.checked;
+  for(let i=0;i<t.N;i++){
+    if(!t.sections[i]) t.sections[i] = {label:'',fillColor:null,textColor:null,blank:true};
+    t.sections[i].blank = target;
+  }
+  renderAll();
+});
+
+document.getElementById('bulk-clear-labels').addEventListener('click', ()=>{
+  if(!confirm(`${state.activeTab==='work'?'外円盤':'内円盤'}タブのラベルをすべて消去しますか？\n（色や空白フラグはそのまま保持します）`)) return;
+  const t = tab();
+  for(let i=0;i<t.N;i++){
+    if(!t.sections[i]) continue;
+    t.sections[i].label = '';
+  }
+  renderAll();
+});
+
+document.getElementById('bulk-reset-colors').addEventListener('click', ()=>{
+  if(!confirm(`${state.activeTab==='work'?'外円盤':'内円盤'}タブの個別色（塗り色・文字色）をすべて「既定（テーマ色）」に戻しますか？`)) return;
+  const t = tab();
+  for(let i=0;i<t.N;i++){
+    if(!t.sections[i]) continue;
+    t.sections[i].fillColor = null;
+    t.sections[i].textColor = null;
+  }
+  renderAll();
+});
+
+/* ----- ラベル一括反映（Excel/Google Sheets共通） ----- */
+function applyLabelsToActiveTab(labels){
+  if(labels.length > 50){
+    alert(`${labels.length}行ありますが，このアプリは最大50分割までです。先頭50行を取り込みます。`);
+    labels = labels.slice(0,50);
+  }
+  setN(labels.length);
+  const t = tab();
+  for(let i=0;i<labels.length;i++){
+    if(!t.sections[i]) t.sections[i] = {label:'', fillColor:null, textColor:null, blank:true};
+    t.sections[i].label = labels[i];
+    t.sections[i].blank = labels[i] === '';
+  }
+  renderAll();
+}
+
+/* ----- 「データを取込」メニュー ----- */
+const importDialog = document.getElementById('import-dialog');
+document.getElementById('btn-import-data').addEventListener('click', ()=>{
+  if(typeof importDialog.showModal === 'function') importDialog.showModal();
+  else importDialog.setAttribute('open','');
+});
+document.getElementById('btn-import-excel').addEventListener('click', ()=>{
+  importDialog.close();
+  document.getElementById('file-input').click();
+});
+document.getElementById('btn-import-paste').addEventListener('click', ()=>{
+  importDialog.close();
+  document.getElementById('paste-textarea').value = '';
+  const d = document.getElementById('paste-dialog');
+  if(typeof d.showModal === 'function') d.showModal();
+  else d.setAttribute('open','');
+});
+
+/* ----- Excel 取込（ファイル選択後の処理） ----- */
+document.getElementById('file-input').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    if(!ws) throw new Error('シートが見つかりません');
+    const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+    let labels = rows.map(r => String((r && r[0]) || '').trim());
+    while(labels.length>0 && labels[labels.length-1] === '') labels.pop();
+    if(labels.length === 0){ alert('A列にデータが見つかりませんでした。'); return; }
+    applyLabelsToActiveTab(labels);
+    alert(`${Math.min(labels.length,50)}件取り込みました（${state.activeTab==='work'?'外円盤':'内円盤'}タブ）。`);
+  }catch(err){
+    alert('取込に失敗しました: ' + err.message);
+  }finally{
+    e.target.value = '';
+  }
+});
+
+/* ----- Google スプレッドシート 取込 ----- */
+/* URLを解析。多様な形式に対応：
+   ・通常の共有URL  /spreadsheets/d/{ID}/edit#gid={GID}
+   ・公開ウェブURL  /spreadsheets/d/e/{LONGID}/pub?...
+   ・CSV直URL（output=csv / format=csv / tqx=out:csv を含む） */
+function parseSheetUrl(url){
+  url = (url||'').trim();
+  if(!url) return null;
+  // CSV直URL
+  if(/[?&](output=csv|format=csv)|tqx=out%3Acsv|tqx=out:csv/.test(url)){
+    return {direct: url};
+  }
+  // 公開ウェブURL（/d/e/ を含む）
+  const pubMatch = url.match(/\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)/);
+  if(pubMatch){
+    const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+    return {published:true, longid: pubMatch[1], gid: gidMatch ? gidMatch[1] : '0'};
+  }
+  // 通常の共有URL
+  const idMatch = url.match(/\/spreadsheets\/d\/([a-zA-Z0-9_-]+)/);
+  if(!idMatch) return null;
+  const gidMatch = url.match(/[#&?]gid=([0-9]+)/);
+  return {id: idMatch[1], gid: gidMatch ? gidMatch[1] : '0'};
+}
+
+/* JSONP（scriptタグ注入）でgvizからJSONを取り，CSV相当の文字列に変換する。
+   file:// から開いていてもCORSの影響を受けない最後の砦。 */
+function fetchSheetViaJsonp(id, gid){
+  return new Promise((resolve, reject) => {
+    const cbName = '__gvizCb_' + Date.now() + '_' + Math.floor(Math.random()*1e9);
+    let script = null;
+    let timer = null;
+    const cleanup = () => {
+      try{ delete window[cbName]; }catch(e){ window[cbName] = undefined; }
+      if(timer){ clearTimeout(timer); timer = null; }
+      if(script && script.parentNode){ script.parentNode.removeChild(script); }
+    };
+    window[cbName] = function(data){
+      try{
+        const rows = (data && data.table && data.table.rows) || [];
+        const csvLines = rows.map(r => {
+          const cells = (r && r.c) || [];
+          // A列だけで十分だが，将来B列以降を使う可能性に備えてCSV化しておく
+          return cells.map(c => {
+            if(!c) return '';
+            const v = (c.f != null) ? c.f : (c.v != null ? c.v : '');
+            const s = String(v);
+            return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+          }).join(',');
+        });
+        resolve(csvLines.join('\n'));
+      }catch(e){
+        reject(e);
+      }finally{
+        cleanup();
+      }
+    };
+    script = document.createElement('script');
+    script.src = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(id)}`+
+      `/gviz/tq?tqx=out:json;responseHandler:${cbName}&gid=${encodeURIComponent(gid)}`;
+    script.onerror = () => { cleanup(); reject(new Error('JSONP読込失敗（共有設定をご確認ください）')); };
+    timer = setTimeout(() => { cleanup(); reject(new Error('JSONPタイムアウト')); }, 15000);
+    document.head.appendChild(script);
+  });
+}
+
+/* 複数エンドポイントを順に試して成功したCSV文字列を返す */
+async function fetchSheetCSV(parsed){
+  let candidates = [];
+  if(parsed.direct){
+    candidates = [parsed.direct];
+  }else if(parsed.published){
+    candidates = [
+      `https://docs.google.com/spreadsheets/d/e/${parsed.longid}/pub?gid=${parsed.gid}&single=true&output=csv`,
+      `https://docs.google.com/spreadsheets/d/e/${parsed.longid}/pub?output=csv`
+    ];
+  }else{
+    // gviz は CORS が緩く file:// から最も成功しやすい
+    candidates = [
+      `https://docs.google.com/spreadsheets/d/${parsed.id}/gviz/tq?tqx=out:csv&gid=${parsed.gid}`,
+      `https://docs.google.com/spreadsheets/d/${parsed.id}/export?format=csv&gid=${parsed.gid}`
+    ];
+  }
+
+  const errors = [];
+  for(const url of candidates){
+    try{
+      const res = await fetch(url, {credentials:'omit', redirect:'follow', mode:'cors'});
+      if(!res.ok){ errors.push(`HTTP ${res.status}`); continue; }
+      const text = await res.text();
+      const trimmed = text.trim();
+      if(trimmed.startsWith('<')){
+        errors.push('HTMLが返却（共有設定が「リンクを知っている全員」になっていない可能性）');
+        continue;
+      }
+      if(trimmed.startsWith(')]}\'') || trimmed.startsWith('/*O_o*/')){
+        errors.push('JSON形式が返却（CSVモードが無効）');
+        continue;
+      }
+      if(text.length === 0) { errors.push('空のレスポンス'); continue; }
+      return text;
+    }catch(e){
+      errors.push(e.message || 'fetch失敗（CORSエラーの可能性）');
+    }
+  }
+
+  // fetchが全滅したらJSONP（scriptタグ）でリトライ。file://起動時の最後の砦。
+  if(parsed.id){
+    try{
+      const csv = await fetchSheetViaJsonp(parsed.id, parsed.gid || '0');
+      if(csv && csv.trim().length > 0) return csv;
+      errors.push('JSONP: 空のレスポンス');
+    }catch(e){
+      errors.push('JSONP: ' + (e.message || '失敗'));
+    }
+  }
+  throw new Error(errors.join(' / '));
+}
+
+/* テキスト（CSV / TSV / 改行区切り）からA列のラベル配列を取り出す */
+function extractLabelsFromText(text){
+  if(!text) return [];
+  // タブを含む場合（クリップボードからの貼り付け）→ TSV扱い
+  if(text.includes('\t')){
+    return text.split(/\r?\n/).map(line => (line.split('\t')[0] || '').trim());
+  }
+  // CSVとしてパース
+  const rows = parseCSV(text);
+  return rows.map(r => String((r && r[0]) || '').trim());
+}
+
+/* Googleスプレッドシート取込ダイアログを開く（取込メニューから） */
+const gsheetDialog = document.getElementById('gsheet-dialog');
+document.getElementById('btn-import-gsheet').addEventListener('click', ()=>{
+  importDialog.close();
+  document.getElementById('gsheet-url').value = '';
+  if(typeof gsheetDialog.showModal === 'function'){
+    gsheetDialog.showModal();
+  }else{
+    gsheetDialog.setAttribute('open', '');
+  }
+});
+
+/* URLから取込 */
+document.getElementById('btn-fetch-gsheet').addEventListener('click', async ()=>{
+  const url = document.getElementById('gsheet-url').value.trim();
+  if(!url){ alert('URLが空です。'); return; }
+  const parsed = parseSheetUrl(url);
+  if(!parsed){
+    alert('URLの形式が認識できませんでした。\n\n'+
+      '対応している形式：\n'+
+      '・https://docs.google.com/spreadsheets/d/ID/edit#gid=...\n'+
+      '・https://docs.google.com/spreadsheets/d/e/LONGID/pubhtml\n'+
+      '・上記のCSV直URL'); return;
+  }
+  try{
+    const csv = await fetchSheetCSV(parsed);
+    let labels = extractLabelsFromText(csv);
+    while(labels.length>0 && labels[labels.length-1] === '') labels.pop();
+    if(labels.length === 0){ alert('A列にデータが見つかりませんでした。'); return; }
+    applyLabelsToActiveTab(labels);
+    gsheetDialog.close();
+    alert(`${Math.min(labels.length,50)}件取り込みました（${state.activeTab==='work'?'外円盤':'内円盤'}タブ）。`);
+  }catch(err){
+    alert('取込に失敗しました。\n\n'+
+      'エラー詳細: ' + err.message + '\n\n'+
+      '解決策の候補：\n'+
+      '① スプレッドシートを開く → 右上「共有」→ 一般的なアクセスを「リンクを知っている全員」（閲覧者）に変更\n'+
+      '② 上記でも失敗する場合は，「データを取込」→「その他のデータから取込」でA列をコピー＆貼り付けでもご利用いただけます。\n'+
+      '③ ファイル → ウェブに公開 → CSV を選んで生成されたURLでも取込可能です。');
+  }
+});
+
+/* その他のデータから取込（コピー＆貼り付け） */
+const pasteDialog = document.getElementById('paste-dialog');
+document.getElementById('btn-do-paste-import').addEventListener('click', ()=>{
+  const text = document.getElementById('paste-textarea').value;
+  if(!text.trim()){ alert('テキストが空です。'); return; }
+  let labels = extractLabelsFromText(text);
+  while(labels.length>0 && labels[labels.length-1] === '') labels.pop();
+  if(labels.length === 0){ alert('データが見つかりませんでした。'); return; }
+  applyLabelsToActiveTab(labels);
+  pasteDialog.close();
+  alert(`${Math.min(labels.length,50)}件取り込みました（${state.activeTab==='work'?'外円盤':'内円盤'}タブ）。`);
+});
+
+/* ----- クリア ----- */
+document.getElementById('btn-clear').addEventListener('click', ()=>{
+  if(!confirm(`${state.activeTab==='work'?'外円盤':'内円盤'}タブの内容をクリアしますか？\n（分割数Nは保持します）`)) return;
+  const t = tab();
+  for(let i=0;i<t.N;i++){
+    t.sections[i] = {label:'', fillColor:null, textColor:null, blank:true};
+  }
+  renderAll();
+});
+
+/* ----- JSON 保存 / 読込 ----- */
+document.getElementById('btn-export-json').addEventListener('click', ()=>{
+  const blob = new Blob([JSON.stringify(state, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().slice(0,10);
+  a.download = `円盤設定_${stamp}.json`;
+  a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+});
+document.getElementById('btn-import-json').addEventListener('click', ()=>{
+  document.getElementById('json-input').click();
+});
+document.getElementById('json-input').addEventListener('change', async e=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  try{
+    const text = await file.text();
+    const obj = JSON.parse(text);
+    if(!obj.work || !obj.name) throw new Error('形式が不正です');
+    Object.assign(state, obj);
+    if(!state.fontFamily) state.fontFamily = 'yugothic';
+    if(!state.fontSizeScale) state.fontSizeScale = 1.0;
+    // 旧仕様（state.N で両タブ共通）→ タブごとに移行
+    if(state.N != null){
+      if(state.work && state.work.N == null) state.work.N = state.N;
+      if(state.name && state.name.N == null) state.name.N = state.N;
+      delete state.N;
+    }
+    for(const key of ['work','name']){
+      if(state[key] && state[key].N == null){
+        state[key].N = (state[key].sections && state[key].sections.length) || 30;
+      }
+      setNFor(key, state[key].N); // sectionsの長さを揃える
+    }
+    renderAll();
+    alert('設定を読み込みました。');
+  }catch(err){
+    alert('読込に失敗しました: ' + err.message);
+  }finally{
+    e.target.value = '';
+  }
+});
+
+/* ----- 印刷 ----- */
+document.getElementById('btn-print').addEventListener('click', ()=>{
+  const t = tab();
+  const paperKind = state.activeTab==='work' ? 'A3' : 'A4';
+  let styleEl = document.getElementById('dyn-page-style');
+  if(!styleEl){
+    styleEl = document.createElement('style');
+    styleEl.id = 'dyn-page-style';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `@media print{ @page { size: ${paperKind} portrait; margin: 8mm; } }`;
+  document.getElementById('print-area').innerHTML = buildDiscSVG(t, paperKind);
+  setTimeout(()=>window.print(), 50);
+});
+
+window.addEventListener('afterprint', ()=>{
+  document.getElementById('print-area').innerHTML = '';
+});
+
+/* ============================================================
+   重ねプレビュー（A3外円盤の上にA4内円盤を重ねて回転）
+   ============================================================ */
+const overlayDialog = document.getElementById('preview-dialog');
+const overlayStage  = document.getElementById('overlay-stage');
+const overlayOuter  = document.getElementById('overlay-outer');
+const overlayInner  = document.getElementById('overlay-inner');
+const overlaySlider = document.getElementById('overlay-rotate-slider');
+const overlayValEl  = document.getElementById('overlay-rotate-val');
+
+let overlayRotation = 0;
+let overlayDragging = false;
+let overlayStartAngle = 0;
+let overlayStartRot = 0;
+
+function normalizeDeg(d){
+  let r = ((d + 180) % 360 + 360) % 360 - 180;
+  return r;
+}
+function applyOverlayRotation(){
+  overlayInner.style.transform = `rotate(${overlayRotation}deg)`;
+  overlaySlider.value = overlayRotation.toFixed(1);
+  overlayValEl.textContent = overlayRotation.toFixed(1) + '°';
+}
+function getStageAngleDeg(clientX, clientY){
+  const rect = overlayStage.getBoundingClientRect();
+  const cx = rect.left + rect.width/2;
+  const cy = rect.top  + rect.height/2;
+  return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
+}
+
+function openOverlayPreview(){
+  // 現在のstateから両円盤のSVGを生成して挿入
+  overlayOuter.innerHTML = buildDiscSVG(state.work, 'A3');
+  overlayInner.innerHTML = buildDiscSVG(state.name, 'A4');
+  overlayRotation = 0;
+  applyOverlayRotation();
+  if(typeof overlayDialog.showModal === 'function'){
+    overlayDialog.showModal();
+  }else{
+    overlayDialog.setAttribute('open', '');
+  }
+}
+
+document.getElementById('btn-overlay-preview').addEventListener('click', openOverlayPreview);
+
+overlaySlider.addEventListener('input', e=>{
+  overlayRotation = parseFloat(e.target.value) || 0;
+  applyOverlayRotation();
+});
+document.getElementById('btn-rot-reset').addEventListener('click', ()=>{
+  overlayRotation = 0;
+  applyOverlayRotation();
+});
+document.getElementById('btn-snap-prev').addEventListener('click', ()=>{
+  // 内円盤の分割数で1セクション戻す
+  overlayRotation = normalizeDeg(overlayRotation - 360/Math.max(1, state.name.N));
+  applyOverlayRotation();
+});
+document.getElementById('btn-snap-next').addEventListener('click', ()=>{
+  overlayRotation = normalizeDeg(overlayRotation + 360/Math.max(1, state.name.N));
+  applyOverlayRotation();
+});
+
+/* ドラッグ回転（マウス・タッチ・ペン共通：Pointer Events） */
+overlayInner.addEventListener('pointerdown', e=>{
+  e.preventDefault();
+  overlayDragging = true;
+  overlayStartAngle = getStageAngleDeg(e.clientX, e.clientY);
+  overlayStartRot = overlayRotation;
+  overlayInner.setPointerCapture(e.pointerId);
+});
+overlayInner.addEventListener('pointermove', e=>{
+  if(!overlayDragging) return;
+  const a = getStageAngleDeg(e.clientX, e.clientY);
+  let rot = overlayStartRot + (a - overlayStartAngle);
+  overlayRotation = normalizeDeg(rot);
+  applyOverlayRotation();
+});
+overlayInner.addEventListener('pointerup',     ()=>{ overlayDragging = false; });
+overlayInner.addEventListener('pointercancel', ()=>{ overlayDragging = false; });
+
+/* ============================================================
+   起動
+   ============================================================ */
+document.body.setAttribute('data-ui-theme', 'wakuwaku');
+// 各タブのsections長をNに合わせる
+for(const key of ['work','name']) setNFor(key, state[key].N);
+renderAll();
+
+</script>
+</body>
+</html>
