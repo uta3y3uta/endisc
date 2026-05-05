@@ -302,6 +302,21 @@
     .print-area svg{display:block;box-shadow:none}
     .print-area svg *{-webkit-print-color-adjust:exact;print-color-adjust:exact;color-adjust:exact}
   }
+  /* ===== 共有URLから開いた閲覧専用モード ===== */
+  body.share-view > *:not(dialog):not(.print-area){display:none !important}
+  body.share-view dialog#preview-dialog::backdrop{background:rgba(0,0,0,.55)}
+  body.share-view [data-share-hide]{display:none !important}
+  body:not(.share-view) .share-only{display:none !important}
+  body.share-view .share-banner{
+    background:linear-gradient(90deg,#FFF7E6,#FFE9C7);
+    border:1px solid #F5C97E;
+    color:#7A4A00;
+    border-radius:8px;
+    padding:8px 12px;
+    margin:0 0 10px;
+    font-size:12px;
+    line-height:1.6;
+  }
 </style>
 </head>
 <body>
@@ -462,8 +477,9 @@
 <!-- 重ねプレビューダイアログ -->
 <dialog id="preview-dialog">
   <form method="dialog" class="preview-dlg-body">
+    <p class="share-banner share-only">🔗 共有された円盤型当番表を表示しています（閲覧専用モード）。内円盤はドラッグやスライダーで回転できます。</p>
     <h3>2枚を重ねてプレビュー</h3>
-    <p class="hint" style="margin:0 0 8px 0">外円盤の上に内円盤が重なっています。<strong>内円盤をマウスでドラッグ</strong>するか，下のスライダーで回転できます。</p>
+    <p class="hint" style="margin:0 0 8px 0" data-share-hide>外円盤の上に内円盤が重なっています。<strong>内円盤をマウスでドラッグ</strong>するか，下のスライダーで回転できます。</p>
     <div class="overlay-stage-wrap">
       <div class="overlay-stage" id="overlay-stage">
         <div class="outer-disc" id="overlay-outer"></div>
@@ -481,12 +497,12 @@
       <button type="button" class="btn" id="btn-snap-next">1セクション進める ▶</button>
       <button type="button" class="btn" id="btn-rot-reset">リセット</button>
     </div>
-    <div class="overlay-controls" style="margin-top:6px">
+    <div class="overlay-controls" style="margin-top:6px" data-share-hide>
       <button type="button" class="btn btn-print" id="btn-share-url">🔗 このURLを発行（共有用）</button>
       <span class="hint" style="font-size:11px">コピーして相手に送ると，同じ画面が再現されます。</span>
     </div>
-    <p class="hint" style="margin-top:10px;font-size:11px">※ 実物では中央を画鋲でピン留めし，2枚を重ねて回転させて使います。</p>
-    <div class="dlg-actions" style="display:flex;justify-content:flex-end;margin-top:12px">
+    <p class="hint" style="margin-top:10px;font-size:11px" data-share-hide>※ 実物では中央を画鋲でピン留めし，2枚を重ねて回転させて使います。</p>
+    <div class="dlg-actions" style="display:flex;justify-content:flex-end;margin-top:12px" data-share-hide>
       <button type="submit" class="btn">閉じる</button>
     </div>
   </form>
@@ -515,6 +531,12 @@
 
 <script>
 'use strict';
+
+/* ============================================================
+   共有URLビューの早期検出（編集UIを表示する前に確定する）
+   ============================================================ */
+const isShareView = /^#share=/.test(location.hash || '');
+if(isShareView) document.body.classList.add('share-view');
 
 /* ============================================================
    定数・フォント
@@ -1816,14 +1838,21 @@ async function tryLoadFromShareHash(){
       if(!Array.isArray(t.sections)) t.sections = makeBlankSections(t.N);
     }
     // localStorageには即上書きしない（受け取り側の元データを温存）
-    // ハッシュをクリアしてリロード時の再適用を防ぐ
-    history.replaceState(null, '', location.pathname + location.search);
+    // ハッシュは保持（再読み込み時もそのまま閲覧専用で開く）
     return payload;
   }catch(e){
     console.error('share decode error:', e);
     alert('共有URLの読み込みに失敗しました。\nURLが途中で切れていないかご確認ください。');
     return false;
   }
+}
+
+// 共有ビュー時はダイアログを閉じられないようにする
+if(isShareView){
+  // ESCキーによるキャンセルを抑止
+  overlayDialog.addEventListener('cancel', e => { e.preventDefault(); });
+  // フォーム送信（万が一何かのボタンが残っていた場合）も抑止
+  overlayDialog.querySelector('form').addEventListener('submit', e => { e.preventDefault(); });
 }
 
 /* ============================================================
@@ -1841,6 +1870,9 @@ tryLoadFromShareHash().then(payload=>{
     for(const key of ['work','name']) setNFor(key, state[key].N);
     renderAll();
     openOverlayPreview(payload.overlayRotation);
+  }else if(isShareView){
+    // デコード失敗：編集画面を表示して通常モードに戻す
+    document.body.classList.remove('share-view');
   }
 });
 
