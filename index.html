@@ -481,8 +481,30 @@
       <button type="button" class="btn" id="btn-snap-next">1セクション進める ▶</button>
       <button type="button" class="btn" id="btn-rot-reset">リセット</button>
     </div>
+    <div class="overlay-controls" style="margin-top:6px">
+      <button type="button" class="btn btn-print" id="btn-share-url">🔗 このURLを発行（共有用）</button>
+      <span class="hint" style="font-size:11px">コピーして相手に送ると，同じ画面が再現されます。</span>
+    </div>
     <p class="hint" style="margin-top:10px;font-size:11px">※ 実物では中央を画鋲でピン留めし，2枚を重ねて回転させて使います。</p>
     <div class="dlg-actions" style="display:flex;justify-content:flex-end;margin-top:12px">
+      <button type="submit" class="btn">閉じる</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 共有URLダイアログ -->
+<dialog id="share-url-dialog">
+  <form method="dialog" class="share-dlg-body" style="max-width:560px">
+    <h3 style="margin:0 0 8px">共有用URLが発行されました</h3>
+    <p class="hint" style="margin:0 0 8px">下のURLをコピーして相手にお送りください。受け取った人がブラウザでURLを開くと，今と同じ「2枚を重ねてプレビュー」画面が再現されます。</p>
+    <textarea id="share-url-text" readonly rows="4" style="width:100%;box-sizing:border-box;font-size:11px;font-family:Consolas,Menlo,monospace;word-break:break-all;resize:vertical;border:1px solid var(--border);border-radius:6px;padding:8px;background:var(--panel-soft)"></textarea>
+    <p class="hint" style="font-size:11px;margin-top:6px;line-height:1.6">
+      ※ 円盤の名前・色・回転角度などすべての情報がURL自体に埋め込まれています。<br>
+      ※ サーバーへの送信は一切ありません（フラグメント形式）。<br>
+      ※ URLの文字数が多い場合は，メールやチャットの本文に直接貼り付けてご使用ください。
+    </p>
+    <div class="dlg-actions" style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+      <button type="button" class="btn" id="btn-share-copy">📋 URLをコピー</button>
       <button type="submit" class="btn">閉じる</button>
     </div>
   </form>
@@ -1616,7 +1638,7 @@ function getStageAngleDeg(clientX, clientY){
   return Math.atan2(clientY - cy, clientX - cx) * 180 / Math.PI;
 }
 
-function openOverlayPreview(){
+function openOverlayPreview(initialRotation){
   // 現在のstateから両円盤のSVGを生成して挿入
   const outerMM = getSizeMM('work', state.work);
   const innerMM = getSizeMM('name', state.name);
@@ -1629,7 +1651,8 @@ function openOverlayPreview(){
   overlayInner.style.height = (ratio * 100) + '%';
   overlayInner.style.marginTop  = '-' + half + '%';
   overlayInner.style.marginLeft = '-' + half + '%';
-  overlayRotation = 0;
+  overlayRotation = (typeof initialRotation === 'number' && isFinite(initialRotation))
+    ? normalizeDeg(initialRotation) : 0;
   applyOverlayRotation();
   if(typeof overlayDialog.showModal === 'function'){
     overlayDialog.showModal();
@@ -1677,12 +1700,149 @@ overlayInner.addEventListener('pointerup',     ()=>{ overlayDragging = false; })
 overlayInner.addEventListener('pointercancel', ()=>{ overlayDragging = false; });
 
 /* ============================================================
+   共有URL機能（フラグメント形式・サーバー送信なし）
+   ============================================================ */
+const SHARE_VERSION = 1;
+const shareDialog = document.getElementById('share-url-dialog');
+const shareUrlText = document.getElementById('share-url-text');
+
+// state→URL（圧縮＋base64url）
+async function encodeShareToHash(){
+  const payload = {
+    v: SHARE_VERSION,
+    fontFamily: state.fontFamily,
+    work: state.work,
+    name: state.name,
+    overlayRotation: overlayRotation
+  };
+  const json = JSON.stringify(payload);
+  let b64;
+  try{
+    // ブラウザ標準のdeflate-rawで圧縮
+    const stream = new Blob([json]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+    const buf = await new Response(stream).arrayBuffer();
+    const bytes = new Uint8Array(buf);
+    let bin = '';
+    for(let i=0;i<bytes.length;i++) bin += String.fromCharCode(bytes[i]);
+    b64 = 'z' + btoa(bin);    // 圧縮版マーカー'z'
+  }catch(e){
+    // フォールバック：圧縮なし
+    b64 = 'r' + btoa(unescape(encodeURIComponent(json)));   // 生JSONマーカー'r'
+  }
+  // URL-safe base64
+  b64 = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  return location.origin + location.pathname + '#share=' + b64;
+}
+
+// URL→state
+async function decodeShareFromHash(rawHash){
+  let s = rawHash.replace(/-/g,'+').replace(/_/g,'/');
+  const marker = s.charAt(0);
+  s = s.slice(1);
+  while(s.length % 4) s += '=';
+  const bin = atob(s);
+  if(marker === 'z'){
+    // 圧縮あり
+    const bytes = new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i] = bin.charCodeAt(i);
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));
+    const text = await new Response(stream).text();
+    return JSON.parse(text);
+  }else if(marker === 'r'){
+    // 生JSON（base64のみ）
+    return JSON.parse(decodeURIComponent(escape(bin)));
+  }else{
+    throw new Error('unknown share marker: ' + marker);
+  }
+}
+
+// 「URLを発行」ボタン
+document.getElementById('btn-share-url').addEventListener('click', async ()=>{
+  try{
+    const url = await encodeShareToHash();
+    shareUrlText.value = url;
+    if(typeof shareDialog.showModal === 'function'){
+      shareDialog.showModal();
+    }else{
+      shareDialog.setAttribute('open', '');
+    }
+    // テキストエリアを全選択
+    setTimeout(()=>{ shareUrlText.focus(); shareUrlText.select(); }, 50);
+  }catch(e){
+    alert('URLの発行に失敗しました：' + (e && e.message ? e.message : e));
+  }
+});
+
+// コピーボタン
+document.getElementById('btn-share-copy').addEventListener('click', async ()=>{
+  const url = shareUrlText.value;
+  let copied = false;
+  try{
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      await navigator.clipboard.writeText(url);
+      copied = true;
+    }
+  }catch(e){ /* fallback below */ }
+  if(!copied){
+    // フォールバック：選択+execCommand
+    shareUrlText.focus();
+    shareUrlText.select();
+    try{ document.execCommand('copy'); copied = true; }catch(e){}
+  }
+  const btn = document.getElementById('btn-share-copy');
+  const original = btn.textContent;
+  btn.textContent = copied ? '✅ コピーしました' : '⚠ 失敗（手動でコピーしてください）';
+  setTimeout(()=>{ btn.textContent = original; }, 1800);
+});
+
+// 起動時：URLに#share=...があれば復元して重ねプレビューを開く
+async function tryLoadFromShareHash(){
+  const m = (location.hash || '').match(/^#share=(.+)$/);
+  if(!m) return false;
+  try{
+    const payload = await decodeShareFromHash(m[1]);
+    if(!payload || !payload.work || !payload.name) throw new Error('invalid payload');
+    // stateを上書き（migration相当の補正は後段のsetNFor等で吸収）
+    if(payload.fontFamily) state.fontFamily = payload.fontFamily;
+    state.work = payload.work;
+    state.name = payload.name;
+    // 念のため既定値補完
+    for(const key of ['work','name']){
+      const t = state[key];
+      if(typeof t.sizeScale !== 'number') t.sizeScale = 1.0;
+      if(typeof t.fontSizeScale !== 'number') t.fontSizeScale = 1.0;
+      if(typeof t.rotation !== 'number') t.rotation = 0;
+      if(typeof t.N !== 'number') t.N = (t.sections && t.sections.length) || 30;
+      if(!Array.isArray(t.sections)) t.sections = makeBlankSections(t.N);
+    }
+    // localStorageには即上書きしない（受け取り側の元データを温存）
+    // ハッシュをクリアしてリロード時の再適用を防ぐ
+    history.replaceState(null, '', location.pathname + location.search);
+    return payload;
+  }catch(e){
+    console.error('share decode error:', e);
+    alert('共有URLの読み込みに失敗しました。\nURLが途中で切れていないかご確認ください。');
+    return false;
+  }
+}
+
+/* ============================================================
    起動
    ============================================================ */
 document.body.setAttribute('data-ui-theme', 'wakuwaku');
 // 各タブのsections長をNに合わせる
 for(const key of ['work','name']) setNFor(key, state[key].N);
 renderAll();
+
+// 共有URL検出（非同期）。成功時は重ねプレビューを自動で開く
+tryLoadFromShareHash().then(payload=>{
+  if(payload){
+    // 共有データを反映
+    for(const key of ['work','name']) setNFor(key, state[key].N);
+    renderAll();
+    openOverlayPreview(payload.overlayRotation);
+  }
+});
 
 </script>
 </body>
