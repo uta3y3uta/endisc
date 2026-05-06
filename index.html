@@ -329,8 +329,8 @@
   <!-- 左：設定パネル -->
   <div class="panel">
     <div class="tabs">
-      <div class="tab active" data-tab="work">外円盤（A3）</div>
-      <div class="tab" data-tab="name">内円盤（A3）</div>
+      <div class="tab" data-tab="name">内円盤</div>
+      <div class="tab active" data-tab="work">外円盤</div>
     </div>
 
     <!-- 共通設定（両タブで同期） -->
@@ -355,12 +355,12 @@
 
     <!-- タブごとの設定 -->
     <div class="controls">
-      <label>分割数 N</label>
+      <label>分割数</label>
       <div class="row">
         <input type="number" id="ctl-N" min="1" max="50" value="30">
       </div>
 
-      <label>サイズ倍率（A3用紙に印刷）</label>
+      <label>サイズ倍率</label>
       <div class="row">
         <input type="range" id="ctl-size" min="40" max="150" step="1" value="100" style="width:180px">
         <span id="ctl-size-val" class="hint">100% (280mm)</span>
@@ -378,7 +378,7 @@
         <label><input type="checkbox" id="ctl-gradient"> 自動グラデーション</label>
       </div>
 
-      <label>文字色（共通）</label>
+      <label>文字色</label>
       <div class="row">
         <span id="ctl-textcolor-wrap"></span>
       </div>
@@ -436,7 +436,7 @@
 <dialog id="import-dialog">
   <form method="dialog" class="dlg-body">
     <h3>データを取込</h3>
-    <p class="hint">取込元を選んでください。A列（または1列目）のデータが取り込まれます。</p>
+    <p class="hint">取込元を選んでください。A列のデータが取り込まれます。</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
       <button type="button" class="btn btn-primary" id="btn-import-excel">Excelから取込</button>
       <button type="button" class="btn btn-primary" id="btn-import-gsheet">Googleスプレッドシートから取込</button>
