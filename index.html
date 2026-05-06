@@ -168,6 +168,34 @@
   .controls .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
   .common-section{background:var(--common-bg);border:1px solid var(--common-border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px}
   .common-section h3{margin:0 0 8px 0;font-size:13px;color:var(--common-fg);font-weight:700;letter-spacing:.04em}
+  /* 目立つ操作ボックス：分割数・データを取込・一括設定 */
+  .primary-box{
+    background:color-mix(in srgb, var(--accent) 7%, var(--panel));
+    border:2px solid var(--accent);
+    border-radius:var(--radius);
+    padding:13px 14px 12px;
+    margin-bottom:12px;
+    box-shadow:0 2px 8px color-mix(in srgb, var(--accent) 22%, transparent)
+  }
+  .primary-box .pb-row{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:10px}
+  .primary-box .pb-label{font-weight:700;color:var(--text);font-size:14px}
+  .primary-box input[type=number]{
+    width:88px;padding:8px 10px;font-size:18px;font-weight:700;text-align:center;
+    border:1.5px solid var(--border);border-radius:var(--radius-sm);
+    background:var(--panel);color:var(--text);font-family:inherit
+  }
+  .primary-box .btn-primary-big{
+    padding:11px 22px;font-size:15px;font-weight:700;border-radius:var(--radius-sm)
+  }
+  .primary-box .pb-bulk{
+    display:flex;gap:10px;align-items:center;flex-wrap:wrap;
+    padding-top:10px;
+    border-top:1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+    font-size:12px;background:transparent;border-left:none;border-right:none;border-bottom:none;border-radius:0;margin:0
+  }
+  .primary-box .pb-bulk .bulk-label{font-weight:700;color:var(--common-fg);letter-spacing:.04em}
+  .primary-box .pb-bulk .bulk-item{display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--text)}
+  .primary-box .pb-bulk .bulk-btn{padding:4px 10px;font-size:12px}
   .btn{padding:7px 14px;border:1px solid var(--border);background:var(--panel);color:var(--text);border-radius:var(--radius-sm);cursor:pointer;font-size:13px;font-family:inherit;transition:all .15s ease}
   .btn:hover{background:var(--panel-soft);transform:translateY(-1px);box-shadow:var(--shadow)}
   .btn:active{transform:translateY(0)}
@@ -333,31 +361,42 @@
       <div class="tab active" data-tab="work">外円盤</div>
     </div>
 
-    <!-- 共通設定（両タブで同期） -->
-    <div class="common-section">
-      <h3>共通設定</h3>
-      <div class="controls">
-        <label>フォント</label>
-        <div class="row">
-          <select id="ctl-fontfamily">
-            <option value="yugothic">游ゴシック</option>
-            <option value="yumincho">游明朝</option>
-            <option value="meiryo">メイリオ</option>
-            <option value="hgmaru">HG丸ゴシック</option>
-            <option value="udkyokasho">UDデジタル教科書体</option>
-            <option value="biz-ud">BIZ UDゴシック</option>
-            <option value="ms-gothic">MSゴシック</option>
-            <option value="ms-mincho">MS明朝</option>
-          </select>
-        </div>
+    <!-- 目立つ操作ボックス：分割数・データを取込・一括設定 -->
+    <div class="primary-box">
+      <div class="pb-row">
+        <label class="pb-label" for="ctl-N">分割数</label>
+        <input type="number" id="ctl-N" min="1" max="50" value="30">
+        <button class="btn btn-primary btn-primary-big" id="btn-import-data">データを取込</button>
+        <input type="file" id="file-input" class="file-input" accept=".xlsx,.xls,.xlsm,.csv">
+      </div>
+      <div class="pb-bulk section-bulk">
+        <span class="bulk-label">一括設定</span>
+        <label class="bulk-item">
+          <input type="checkbox" id="bulk-blank">
+          <span>全空白</span>
+        </label>
+        <button type="button" class="btn bulk-btn" id="bulk-clear-labels">全消去</button>
+        <button type="button" class="btn bulk-btn" id="bulk-reset-colors">全同色</button>
+        <button type="button" class="btn bulk-btn" id="btn-export-json">設定を保存</button>
+        <button type="button" class="btn bulk-btn" id="btn-import-json">設定を読込</button>
+        <input type="file" id="json-input" class="file-input" accept=".json">
       </div>
     </div>
 
-    <!-- タブごとの設定 -->
+    <!-- 通常設定 -->
     <div class="controls">
-      <label>分割数</label>
+      <label>フォント</label>
       <div class="row">
-        <input type="number" id="ctl-N" min="1" max="50" value="30">
+        <select id="ctl-fontfamily">
+          <option value="yugothic">游ゴシック</option>
+          <option value="yumincho">游明朝</option>
+          <option value="meiryo">メイリオ</option>
+          <option value="hgmaru">HG丸ゴシック</option>
+          <option value="udkyokasho">UDデジタル教科書体</option>
+          <option value="biz-ud">BIZ UDゴシック</option>
+          <option value="ms-gothic">MSゴシック</option>
+          <option value="ms-mincho">MS明朝</option>
+        </select>
       </div>
 
       <label>サイズ倍率</label>
@@ -389,24 +428,6 @@
       </div>
     </div>
 
-    <div class="actions">
-      <button class="btn btn-primary" id="btn-import-data">データを取込</button>
-      <input type="file" id="file-input" class="file-input" accept=".xlsx,.xls,.xlsm,.csv">
-      <button class="btn" id="btn-clear">クリア</button>
-      <button class="btn" id="btn-export-json">設定を保存</button>
-      <button class="btn" id="btn-import-json">設定を読込</button>
-      <input type="file" id="json-input" class="file-input" accept=".json">
-    </div>
-
-    <div class="section-bulk">
-      <span class="bulk-label">一括設定</span>
-      <label class="bulk-item">
-        <input type="checkbox" id="bulk-blank">
-        <span>全空白</span>
-      </label>
-      <button type="button" class="btn bulk-btn" id="bulk-clear-labels">全消去</button>
-      <button type="button" class="btn bulk-btn" id="bulk-reset-colors">全同色</button>
-    </div>
     <div class="section-list" id="section-list"></div>
   </div>
 
@@ -1555,16 +1576,6 @@ document.getElementById('btn-do-paste-import').addEventListener('click', ()=>{
   applyLabelsToActiveTab(labels);
   pasteDialog.close();
   alert(`${Math.min(labels.length,50)}件取り込みました（${state.activeTab==='work'?'外円盤':'内円盤'}タブ）。`);
-});
-
-/* ----- クリア ----- */
-document.getElementById('btn-clear').addEventListener('click', ()=>{
-  if(!confirm(`${state.activeTab==='work'?'外円盤':'内円盤'}タブの内容をクリアしますか？\n（分割数Nは保持します）`)) return;
-  const t = tab();
-  for(let i=0;i<t.N;i++){
-    t.sections[i] = {label:'', fillColor:null, textColor:null, blank:true};
-  }
-  renderAll();
 });
 
 /* ----- JSON 保存 / 読込 ----- */
