@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="description" content="教室の輪番管理を1つで完結。外円盤（A3）と内円盤（A3）を生成して印刷できる円盤型当番表作成アプリ。">
+<meta name="description" content="教室の輪番管理（給食当番・係活動など）に使う2枚重ね回転円盤を生成して印刷できるアプリ。">
 <meta name="author" content="鈴木優太">
-<meta name="robots" content="noindex,nofollow">
+<meta name="robots" content="noindex">
 <title>円盤型当番表作成アプリ</title>
 <script src="xlsx.full.min.js"></script>
 <style>
@@ -270,12 +270,15 @@
   .preview-dlg-body{padding:18px}
   .preview-dlg-body h3{margin:0 0 10px 0;font-size:16px}
   .overlay-stage-wrap{display:flex;justify-content:center;align-items:center;padding:6px;background:var(--panel-soft);border-radius:var(--radius-sm)}
-  .overlay-stage{position:relative;width:480px;height:480px;max-width:100%;aspect-ratio:1/1}
-  .overlay-stage .outer-disc,.overlay-stage .inner-disc{position:absolute;top:50%;left:50%;display:flex;align-items:center;justify-content:center}
-  .overlay-stage .outer-disc{width:100%;height:100%;margin-top:-50%;margin-left:-50%;pointer-events:none}
+  /* スマホでも常に正方形にするため height は指定せず aspect-ratio に任せる。max-height で横向き端末でも画面内に収める。 */
+  .overlay-stage{position:relative;width:480px;max-width:100%;max-height:70vh;aspect-ratio:1/1;margin:0 auto}
+  /* 中央寄せはネガティブマージンでなく transform で行う（margin-top:%は親の「幅」基準のため非正方形では中心がズレる） */
+  .overlay-stage .outer-disc,.overlay-stage .inner-disc{position:absolute;top:50%;left:50%;display:flex;align-items:center;justify-content:center;transform-origin:center center}
+  .overlay-stage .outer-disc{width:100%;height:100%;transform:translate(-50%,-50%);pointer-events:none}
   .overlay-stage .inner-disc{
-    width:67.86%;height:67.86%;margin-top:-33.93%;margin-left:-33.93%;
-    cursor:grab;transform:rotate(0deg);transform-origin:center center;
+    width:67.86%;height:67.86%;
+    transform:translate(-50%,-50%) rotate(0deg);
+    cursor:grab;
     filter:drop-shadow(0 2px 6px rgba(0,0,0,0.18));touch-action:none;user-select:none
   }
   .overlay-stage .inner-disc:active{cursor:grabbing}
@@ -285,7 +288,7 @@
   .overlay-stage .inner-disc{background:transparent}
   .overlay-stage .center-pin{
     position:absolute;top:50%;left:50%;width:14px;height:14px;
-    margin-top:-7px;margin-left:-7px;
+    transform:translate(-50%,-50%);
     background:radial-gradient(circle at 30% 30%,#ff8a8a 0%,#c92a2a 70%,#7a1010 100%);
     border-radius:50%;border:1px solid rgba(0,0,0,0.4);
     pointer-events:none;z-index:10;box-shadow:0 1px 2px rgba(0,0,0,0.4)
@@ -1649,7 +1652,7 @@ function normalizeDeg(d){
   return r;
 }
 function applyOverlayRotation(){
-  overlayInner.style.transform = `rotate(${overlayRotation}deg)`;
+  overlayInner.style.transform = `translate(-50%,-50%) rotate(${overlayRotation}deg)`;
   overlaySlider.value = overlayRotation.toFixed(1);
   overlayValEl.textContent = overlayRotation.toFixed(1) + '°';
 }
@@ -1667,12 +1670,12 @@ function openOverlayPreview(initialRotation){
   overlayOuter.innerHTML = buildDiscSVG(state.work, outerMM);
   overlayInner.innerHTML = buildDiscSVG(state.name, innerMM);
   // 内円盤を実際の比率で表示（外円盤を100%として相対サイズ）
+  // 中心合わせは CSS の transform: translate(-50%,-50%) で行う
   const ratio = Math.min(1, innerMM / Math.max(outerMM, 1));
-  const half = ratio * 100 / 2;
   overlayInner.style.width  = (ratio * 100) + '%';
   overlayInner.style.height = (ratio * 100) + '%';
-  overlayInner.style.marginTop  = '-' + half + '%';
-  overlayInner.style.marginLeft = '-' + half + '%';
+  overlayInner.style.marginTop  = '0';
+  overlayInner.style.marginLeft = '0';
   overlayRotation = (typeof initialRotation === 'number' && isFinite(initialRotation))
     ? normalizeDeg(initialRotation) : 0;
   applyOverlayRotation();
