@@ -214,6 +214,10 @@
   .section-bulk .bulk-item input{cursor:pointer}
   .section-bulk .bulk-btn{padding:4px 10px;font-size:12px}
   .section-list{max-height:50vh;overflow-y:auto;border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:6px;background:var(--panel-soft)}
+  /* 一括設定行＋セクション一覧を同じ枠で囲むラッパー */
+  .section-block{border:1px solid var(--border-soft);border-radius:var(--radius-sm);background:var(--panel-soft);overflow:hidden;margin-top:6px}
+  .section-block .section-bulk{margin:0;border-radius:0;border-top:0;border-left:0;border-right:0;border-bottom:1px solid var(--border-soft)}
+  .section-block .section-list{border:0;border-radius:0;background:transparent;max-height:50vh}
   .section-row{display:grid;grid-template-columns:32px 1fr 40px 40px 52px;gap:5px;align-items:center;padding:3px 0;font-size:13px}
   .section-row .idx{color:var(--muted);text-align:right;font-variant-numeric:tabular-nums}
   .section-row input[type=text]{padding:5px 7px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:13px;width:100%;background:var(--panel);color:var(--text);font-family:inherit}
@@ -361,25 +365,13 @@
       <div class="tab active" data-tab="work">外円盤</div>
     </div>
 
-    <!-- 目立つ操作ボックス：分割数・データを取込・一括設定 -->
+    <!-- 目立つ操作ボックス：分割数・データを取込 -->
     <div class="primary-box">
       <div class="pb-row">
         <label class="pb-label" for="ctl-N">分割数</label>
         <input type="number" id="ctl-N" min="1" max="50" value="30">
         <button class="btn btn-primary btn-primary-big" id="btn-import-data">データを取込</button>
         <input type="file" id="file-input" class="file-input" accept=".xlsx,.xls,.xlsm,.csv">
-      </div>
-      <div class="pb-bulk section-bulk">
-        <span class="bulk-label">一括設定</span>
-        <label class="bulk-item">
-          <input type="checkbox" id="bulk-blank">
-          <span>全空白</span>
-        </label>
-        <button type="button" class="btn bulk-btn" id="bulk-clear-labels">全消去</button>
-        <button type="button" class="btn bulk-btn" id="bulk-reset-colors">全同色</button>
-        <button type="button" class="btn bulk-btn" id="btn-export-json">設定を保存</button>
-        <button type="button" class="btn bulk-btn" id="btn-import-json">設定を読込</button>
-        <input type="file" id="json-input" class="file-input" accept=".json">
       </div>
     </div>
 
@@ -428,7 +420,22 @@
       </div>
     </div>
 
-    <div class="section-list" id="section-list"></div>
+    <!-- 一括設定行＋セクション一覧（同じ枠で囲む） -->
+    <div class="section-block">
+      <div class="section-bulk">
+        <span class="bulk-label">一括設定</span>
+        <label class="bulk-item">
+          <input type="checkbox" id="bulk-blank">
+          <span>全空白</span>
+        </label>
+        <button type="button" class="btn bulk-btn" id="bulk-clear-labels">全消去</button>
+        <button type="button" class="btn bulk-btn" id="bulk-reset-colors">全同色</button>
+        <button type="button" class="btn bulk-btn" id="btn-export-json">設定を保存</button>
+        <button type="button" class="btn bulk-btn" id="btn-import-json">設定を読込</button>
+        <input type="file" id="json-input" class="file-input" accept=".json">
+      </div>
+      <div class="section-list" id="section-list"></div>
+    </div>
   </div>
 
   <!-- 右：プレビュー -->
