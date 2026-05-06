@@ -438,9 +438,9 @@
     <h3>データを取込</h3>
     <p class="hint">取込元を選んでください。A列のデータが取り込まれます。</p>
     <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
-      <button type="button" class="btn btn-primary" id="btn-import-excel">Excelから取込</button>
-      <button type="button" class="btn btn-primary" id="btn-import-gsheet">Googleスプレッドシートから取込</button>
-      <button type="button" class="btn btn-primary" id="btn-import-paste">その他のデータから取込（コピー＆貼り付け）</button>
+      <button type="button" class="btn btn-primary" id="btn-import-paste">コピペから</button>
+      <button type="button" class="btn btn-primary" id="btn-import-excel">Excelから</button>
+      <button type="button" class="btn btn-primary" id="btn-import-gsheet">Googleスプレッドシートから</button>
     </div>
     <div class="dlg-actions" style="margin-top:14px;border-top:1px solid var(--border-soft);padding-top:10px">
       <button type="submit" class="btn">閉じる</button>
@@ -451,7 +451,7 @@
 <!-- Google スプレッドシート 取込ダイアログ -->
 <dialog id="gsheet-dialog">
   <form method="dialog" class="dlg-body">
-    <h3>Googleスプレッドシートから取込</h3>
+    <h3>Googleスプレッドシートから</h3>
     <p class="hint">スプレッドシートを「リンクを知っている全員（閲覧）」に共有してから，URLを貼り付けてください。</p>
     <textarea id="gsheet-url" rows="2" placeholder="https://docs.google.com/spreadsheets/d/..."></textarea>
     <div class="dlg-actions">
@@ -464,10 +464,10 @@
   </form>
 </dialog>
 
-<!-- その他のデータから取込：コピー＆貼り付けダイアログ -->
+<!-- コピペから：コピー＆貼り付けダイアログ -->
 <dialog id="paste-dialog">
   <form method="dialog" class="dlg-body">
-    <h3>その他のデータから取込（コピー＆貼り付け）</h3>
+    <h3>コピペから</h3>
     <p class="hint">改行区切り・CSV・TSV（Excelやスプレッドシートの列をそのままコピー）に対応します。1行＝1セクション。</p>
     <textarea id="paste-textarea" rows="12" placeholder="（ここに貼り付け）&#10;1人目&#10;2人目&#10;3人目&#10;..."></textarea>
     <div class="dlg-actions">
@@ -1539,12 +1539,12 @@ document.getElementById('btn-fetch-gsheet').addEventListener('click', async ()=>
       'エラー詳細: ' + err.message + '\n\n'+
       '解決策の候補：\n'+
       '① スプレッドシートを開く → 右上「共有」→ 一般的なアクセスを「リンクを知っている全員」（閲覧者）に変更\n'+
-      '② 上記でも失敗する場合は，「データを取込」→「その他のデータから取込」でA列をコピー＆貼り付けでもご利用いただけます。\n'+
+      '② 上記でも失敗する場合は，「データを取込」→「コピペから」でA列をコピー＆貼り付けでもご利用いただけます。\n'+
       '③ ファイル → ウェブに公開 → CSV を選んで生成されたURLでも取込可能です。');
   }
 });
 
-/* その他のデータから取込（コピー＆貼り付け） */
+/* コピペから（コピー＆貼り付け） */
 const pasteDialog = document.getElementById('paste-dialog');
 document.getElementById('btn-do-paste-import').addEventListener('click', ()=>{
   const text = document.getElementById('paste-textarea').value;
