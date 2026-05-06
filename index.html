@@ -377,6 +377,18 @@
 
     <!-- 通常設定 -->
     <div class="controls">
+      <label>本体サイズ倍率</label>
+      <div class="row">
+        <input type="range" id="ctl-size" min="40" max="150" step="1" value="100" style="width:180px">
+        <span id="ctl-size-val" class="hint">100% (280mm)</span>
+      </div>
+
+      <label>文字サイズ倍率</label>
+      <div class="row">
+        <input type="range" id="ctl-fontscale" min="0.5" max="2.0" step="0.05" value="1.0" style="width:180px">
+        <span id="ctl-fontscale-val" class="hint">1.00x</span>
+      </div>
+
       <label>フォント</label>
       <div class="row">
         <select id="ctl-fontfamily">
@@ -389,18 +401,6 @@
           <option value="ms-gothic">MSゴシック</option>
           <option value="ms-mincho">MS明朝</option>
         </select>
-      </div>
-
-      <label>サイズ倍率</label>
-      <div class="row">
-        <input type="range" id="ctl-size" min="40" max="150" step="1" value="100" style="width:180px">
-        <span id="ctl-size-val" class="hint">100% (280mm)</span>
-      </div>
-
-      <label>文字サイズ倍率</label>
-      <div class="row">
-        <input type="range" id="ctl-fontscale" min="0.5" max="2.0" step="0.05" value="1.0" style="width:180px">
-        <span id="ctl-fontscale-val" class="hint">1.00x</span>
       </div>
 
       <label>テーマ色</label>
